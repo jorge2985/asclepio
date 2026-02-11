@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Seguimiento de Cita</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "surface-dark": "#192233",
+                        "text-secondary": "#92a4c9",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Pulse animation for the doctor's location marker */
+        @keyframes radar-ping {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        .radar-effect::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            background-color: #135bec;
+            z-index: -1;
+            animation: radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-dark text-white font-display overflow-hidden selection:bg-primary selection:text-white">
+<div class="relative w-full h-screen flex flex-col">
+<!-- Interactive Map Layer -->
+<!-- Using absolute positioning to fill the screen behind the UI controls -->
+<div class="absolute inset-0 z-0 bg-background-dark">
+<!-- Map Image Background -->
+<div class="w-full h-full bg-cover bg-center opacity-80" data-alt="Dark stylized map of city streets at night with high contrast roads" data-location="Mexico City" style='background-image: url("imagenes/seguimiento_cita_mapa_imagen_1.jpg"); filter: grayscale(100%) brightness(0.4) contrast(1.2);'>
+</div>
+<!-- Simulated Route SVG Overlay -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 1;">
+<path class="opacity-80 drop-shadow-[0_0_8px_rgba(19,91,236,0.6)]" d="M 120 150 Q 180 300 280 400 T 320 600" fill="none" stroke="#135bec" stroke-dasharray="8 4" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+<!-- Map Markers -->
+<!-- Doctor Location Marker (Animated) -->
+<div class="absolute top-[35%] left-[30%] z-10 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<div class="relative w-12 h-12 bg-white rounded-full p-1 shadow-lg radar-effect">
+<img alt="Doctor avatar marker" class="w-full h-full rounded-full object-cover" data-alt="Small circular portrait of Dr. Ana García on map" src="imagenes/seguimiento_cita_mapa_imagen_2.jpg"/>
+</div>
+<div class="bg-surface-dark px-2 py-1 rounded text-[10px] font-bold mt-1 shadow-md border border-white/10">Dr. Ana</div>
+</div>
+<!-- Destination/Patient Marker -->
+<div class="absolute top-[65%] left-[75%] z-0 transform -translate-x-1/2 -translate-y-1/2">
+<div class="text-primary drop-shadow-lg filter" style="filter: drop-shadow(0 0 4px rgba(19,91,236,0.5));">
+<span class="material-symbols-outlined filled text-5xl">location_on</span>
+</div>
+</div>
+</div>
+<!-- Top Header Overlay (Floating) -->
+<!-- Safe area padding for top notch -->
+<div class="relative z-20 flex justify-between items-start px-4 pt-14 pb-4 w-full pointer-events-none">
+<!-- Back Button -->
+<button class="pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-surface-dark/90 backdrop-blur-md shadow-lg border border-white/5 active:scale-95 transition-transform hover:bg-surface-dark">
+<span class="material-symbols-outlined text-white" style="font-size: 20px;">arrow_back</span>
+</button>
+<!-- Status Pill -->
+<div class="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-surface-dark/90 backdrop-blur-md shadow-lg border border-white/5">
+<div class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+</div>
+<span class="text-xs font-bold tracking-wide">En camino • 1 min</span>
+</div>
+<!-- Empty div for spacing balance if needed, or secondary action like map settings -->
+<button class="pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-surface-dark/90 backdrop-blur-md shadow-lg border border-white/5 active:scale-95 transition-transform hover:bg-surface-dark">
+<span class="material-symbols-outlined text-white" style="font-size: 20px;">my_location</span>
+</button>
+</div>
+<!-- Bottom Card Overlay (Floating) -->
+<div class="mt-auto relative z-30 px-4 pb-8 w-full">
+<div class="bg-surface-dark rounded-2xl shadow-2xl overflow-hidden border border-white/5 backdrop-blur-sm bg-opacity-95">
+<!-- Drag Handle (Visual Indicator) -->
+<div class="w-full flex justify-center pt-3 pb-1">
+<div class="w-10 h-1 bg-white/20 rounded-full"></div>
+</div>
+<div class="p-5 pt-2 flex flex-col gap-6">
+<!-- Doctor Profile Header -->
+<div class="flex items-center gap-4">
+<div class="relative">
+<div class="w-14 h-14 rounded-full bg-gray-700 overflow-hidden ring-2 ring-primary/50 shadow-lg">
+<div class="w-full h-full bg-cover bg-center" data-alt="Portrait of Dr. Ana García smiling in medical coat" style='background-image: url("imagenes/seguimiento_cita_mapa_imagen_3.jpg");'>
+</div>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border-2 border-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 12px;">medical_services</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h2 class="text-white text-lg font-bold leading-tight truncate">Dr. Ana García</h2>
+<p class="text-text-secondary text-sm font-medium">Medicina General</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-yellow-500 filled" style="font-size: 14px;">star</span>
+<span class="text-xs text-white font-bold">4.9</span>
+<span class="text-xs text-text-secondary">(120 reseñas)</span>
+</div>
+</div>
+</div>
+<!-- Stats Row -->
+<div class="flex items-center rounded-xl bg-background-dark border border-white/5 p-4">
+<div class="flex-1 flex flex-col items-center border-r border-white/10 px-2">
+<p class="text-2xl font-extrabold text-white leading-none">15 <span class="text-sm font-medium text-text-secondary">min</span></p>
+<p class="text-text-secondary text-[10px] uppercase tracking-wider font-bold mt-1">Estimado</p>
+</div>
+<div class="flex-1 flex flex-col items-center px-2">
+<p class="text-2xl font-extrabold text-white leading-none">3.2 <span class="text-sm font-medium text-text-secondary">km</span></p>
+<p class="text-text-secondary text-[10px] uppercase tracking-wider font-bold mt-1">Distancia</p>
+</div>
+</div>
+<!-- Location Info -->
+<div class="flex items-start gap-3 px-1">
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary shrink-0 mt-0.5">
+<span class="material-symbols-outlined filled" style="font-size: 18px;">home_pin</span>
+</div>
+<div class="flex-col">
+<p class="text-white text-sm font-bold">Destino</p>
+<p class="text-text-secondary text-sm leading-snug">Av. Reforma 222, Juárez, Ciudad de México</p>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="grid grid-cols-2 gap-3 mt-1">
+<button class="flex items-center justify-center gap-2 h-12 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold transition-colors active:scale-95 transform transition-transform">
+<span class="material-symbols-outlined" style="font-size: 20px;">chat_bubble</span>
+<span>Mensaje</span>
+</button>
+<button class="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary hover:bg-blue-600 text-white font-bold shadow-lg shadow-primary/30 transition-colors active:scale-95 transform transition-transform">
+<span class="material-symbols-outlined filled" style="font-size: 20px;">call</span>
+<span>Llamar</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

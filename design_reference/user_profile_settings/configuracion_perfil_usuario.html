@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Profile Settings</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-white antialiased transition-colors duration-200">
+<!-- Main Container -->
+<div class="relative flex flex-col h-full min-h-screen w-full max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-20 flex items-center justify-between p-5 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md">
+<button class="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">Profile</h1>
+<div class="w-10"></div> <!-- Spacer for balance -->
+</header>
+<!-- Scrollable Content -->
+<main class="flex-1 flex flex-col px-5 pb-8">
+<!-- ProfileHeader -->
+<div class="flex flex-col items-center justify-center py-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+<div class="relative mb-5 group">
+<div class="w-28 h-28 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover bg-center ring-4 ring-white dark:ring-slate-800 shadow-lg overflow-hidden" data-alt="Portrait of a smiling man, likely Alex Freeman, wearing a casual shirt" style="background-image: url('imagenes/configuracion_perfil_usuario_imagen_1.jpg');">
+</div>
+<!-- Edit Badge -->
+<button class="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full ring-4 ring-background-light dark:ring-background-dark flex items-center justify-center hover:bg-blue-600 transition-colors shadow-md">
+<span class="material-symbols-outlined text-sm font-bold">edit</span>
+</button>
+</div>
+<h2 class="text-2xl font-bold text-center leading-tight mb-1">Alex Freeman</h2>
+<div class="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<p class="text-sm font-medium">San Francisco, CA</p>
+</div>
+</div>
+<!-- Settings List -->
+<div class="flex flex-col gap-3 mt-4">
+<!-- Personal Information -->
+<button class="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-[#1C2333] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200">
+<div class="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div class="flex-1 text-left">
+<p class="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-blue-400 transition-colors">Personal Information</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Email, Phone, DOB</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400">chevron_right</span>
+</button>
+<!-- Medical Record -->
+<button class="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-[#1C2333] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200">
+<div class="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div class="flex-1 text-left">
+<p class="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-blue-400 transition-colors">Medical Record</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">History, Prescriptions</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400">chevron_right</span>
+</button>
+<!-- Payment Methods -->
+<button class="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-[#1C2333] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200">
+<div class="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<div class="flex-1 text-left">
+<p class="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-blue-400 transition-colors">Payment Methods</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Visa ending in 4242</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400">chevron_right</span>
+</button>
+<!-- Security Settings -->
+<button class="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-[#1C2333] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200">
+<div class="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<div class="flex-1 text-left">
+<div class="flex items-center gap-2">
+<p class="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-blue-400 transition-colors">Security Settings</p>
+<span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">2FA On</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Password, FaceID</p>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400">chevron_right</span>
+</button>
+</div>
+<!-- Footer / Logout -->
+<div class="mt-auto pt-10">
+<button class="w-full group flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-100 dark:bg-slate-800/50 hover:bg-red-50 dark:hover:bg-red-900/10 border border-transparent hover:border-red-200 dark:hover:border-red-900/30 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 active:scale-[0.98] transition-all duration-200">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-bold">Log Out</span>
+</button>
+<p class="text-center text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-600 mt-6">Health Connect v2.4.0</p>
+</div>
+</main>
+</div>
+</body></html>

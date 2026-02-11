@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Medical App Login</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#336ee6",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding if needed */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#0e121b] dark:text-white transition-colors duration-200">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-sm">
+<!-- Header Section with Logo -->
+<div class="flex flex-col items-center justify-center pt-12 pb-2 px-4">
+<!-- Logo Placeholder -->
+<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 text-primary">
+<span class="material-symbols-outlined" style="font-size: 32px;">local_hospital</span>
+</div>
+<h1 class="text-[#0e121b] dark:text-white tracking-tight text-[32px] font-bold leading-tight text-center">Welcome Back</h1>
+<p class="text-[#4f6796] dark:text-gray-400 text-base font-normal leading-normal pt-2 text-center">Book your specialist today.</p>
+</div>
+<!-- Form Section -->
+<div class="w-full px-4 mt-6">
+<form action="#" onsubmit="event.preventDefault();">
+<!-- Email Field -->
+<div class="flex flex-col gap-2 mb-5">
+<label class="text-[#0e121b] dark:text-gray-200 text-base font-medium leading-normal">Email</label>
+<div class="flex w-full items-stretch rounded-lg bg-white dark:bg-[#1a202e] border border-[#d0d8e6] dark:border-gray-700 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg bg-transparent text-[#0e121b] dark:text-white focus:outline-0 border-none h-14 placeholder:text-[#93adc8] p-[15px] text-base font-normal leading-normal" placeholder="name@example.com" type="email" value=""/>
+<div class="flex items-center justify-center pr-[15px] pl-2 text-[#93adc8]">
+<span class="material-symbols-outlined">mail</span>
+</div>
+</div>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col gap-2 mb-2">
+<label class="text-[#0e121b] dark:text-gray-200 text-base font-medium leading-normal">Password</label>
+<div class="flex w-full items-stretch rounded-lg bg-white dark:bg-[#1a202e] border border-[#d0d8e6] dark:border-gray-700 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg bg-transparent text-[#0e121b] dark:text-white focus:outline-0 border-none h-14 placeholder:text-[#93adc8] p-[15px] text-base font-normal leading-normal" placeholder="••••••••" type="password" value=""/>
+<div class="flex items-center justify-center pr-[15px] pl-2 text-[#93adc8] cursor-pointer hover:text-primary transition-colors">
+<span class="material-symbols-outlined">visibility_off</span>
+</div>
+</div>
+</div>
+<!-- Forgot Password -->
+<div class="flex justify-end mb-8">
+<a class="text-primary text-sm font-semibold hover:text-primary/80 transition-colors" href="#">Forgot Password?</a>
+</div>
+<!-- Login Button -->
+<button class="w-full bg-primary hover:bg-blue-600 text-white font-bold h-14 rounded-lg shadow-sm transition-colors text-base flex items-center justify-center gap-2">
+                    Login
+                </button>
+</form>
+</div>
+<!-- Social Login Divider -->
+<div class="px-4 py-8">
+<div class="relative">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-[#d0d8e6] dark:border-gray-700"></div>
+</div>
+<div class="relative flex justify-center text-sm">
+<span class="bg-background-light dark:bg-background-dark px-2 text-gray-500 dark:text-gray-400">Or continue with</span>
+</div>
+</div>
+<div class="mt-6 flex gap-4">
+<!-- Apple -->
+<button class="flex w-full items-center justify-center gap-2 rounded-lg bg-white dark:bg-[#1a202e] border border-[#d0d8e6] dark:border-gray-700 px-4 py-3 text-[#0e121b] dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors h-14">
+<svg aria-hidden="true" class="h-5 w-5 fill-current" viewbox="0 0 24 24">
+<path d="M17.3 16.5c-.7 1-1.6 2-2.7 2-1 0-1.4-.6-2.6-.6-1.3 0-1.7.6-2.7.6-1 0-2-.9-2.7-2-.8-1.2-1.3-3.1-1.3-4.8 0-2.4 1.5-3.6 3-3.6 1.3 0 1.8.8 2.3.8.6 0 1.6-.9 2.9-.9 1 0 1.9.5 2.5 1.2-2.2 1.3-1.8 4.3.4 5.3zm-3.2-9.6c.5-.7 1-1.6.9-2.6-.9 0-2 .6-2.6 1.3-.5.7-1 1.6-1 2.5 1 .1 2.1-.5 2.7-1.2z"></path>
+</svg>
+<span class="font-medium">Apple</span>
+</button>
+<!-- Google -->
+<button class="flex w-full items-center justify-center gap-2 rounded-lg bg-white dark:bg-[#1a202e] border border-[#d0d8e6] dark:border-gray-700 px-4 py-3 text-[#0e121b] dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors h-14">
+<svg aria-hidden="true" class="h-5 w-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+<span class="font-medium">Google</span>
+</button>
+</div>
+</div>
+<!-- Footer / Sign Up -->
+<div class="mt-auto px-4 py-8 text-center">
+<p class="text-[#4f6796] dark:text-gray-400 text-base font-normal">
+                Don't have an account? 
+                <a class="text-primary font-bold hover:underline" href="#">Sign Up</a>
+</p>
+</div>
+</div>
+</body></html>

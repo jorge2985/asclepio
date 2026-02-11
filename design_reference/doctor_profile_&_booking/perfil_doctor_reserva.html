@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Doctor Profile &amp; Booking</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white font-display">
+<!-- Top App Bar -->
+<div class="sticky top-0 z-50 flex items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md p-4 pb-2 justify-between border-b border-white/5">
+<div class="text-white flex size-12 shrink-0 items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-2xl">arrow_back_ios</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Doctor Profile</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<span class="material-symbols-outlined text-2xl">share</span>
+</button>
+</div>
+</div>
+<main class="pb-32">
+<!-- Profile Header -->
+<div class="flex p-6 @container">
+<div class="flex w-full flex-col gap-4 items-center">
+<div class="flex gap-4 flex-col items-center">
+<div class="relative">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full min-h-32 w-32 border-4 border-primary/20" data-alt="Professional portrait of a male doctor in a white coat" style='background-image: url("imagenes/perfil_doctor_reserva_imagen_2.jpg");'>
+</div>
+<div class="absolute bottom-1 right-1 bg-primary text-white rounded-full p-1 border-2 border-background-dark">
+<span class="material-symbols-outlined text-xs block">verified</span>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center">
+<p class="text-white text-2xl font-extrabold leading-tight tracking-[-0.015em] text-center">Dr. Julian Thorne</p>
+<p class="text-primary text-base font-semibold leading-normal text-center">Senior Cardiologist</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-yellow-500 fill-1 text-sm">star</span>
+<p class="text-[#92a4c9] text-sm font-medium leading-normal text-center">4.9 (120+ Reviews)</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Visit Type Toggle -->
+<div class="px-4 py-2">
+<div class="flex h-14 flex-1 items-center justify-center rounded-xl bg-white/5 p-1.5">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 transition-all has-[:checked]:bg-primary has-[:checked]:text-white text-[#92a4c9] text-sm font-bold">
+<div class="flex flex-col items-center">
+<span class="truncate">Clinic Visit</span>
+<span class="text-[10px] opacity-80">$50.00</span>
+</div>
+<input checked="" class="hidden" name="visit_type" type="radio" value="clinic"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 transition-all has-[:checked]:bg-primary has-[:checked]:text-white text-[#92a4c9] text-sm font-bold">
+<div class="flex flex-col items-center">
+<span class="truncate">Home Visit</span>
+<span class="text-[10px] opacity-80">$85.00</span>
+</div>
+<input class="hidden" name="visit_type" type="radio" value="home"/>
+</label>
+</div>
+</div>
+<!-- Availability Section Header -->
+<div class="flex items-center justify-between px-4 pt-6 pb-2">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Select Schedule</h3>
+<p class="text-primary text-sm font-semibold">October 2023</p>
+</div>
+<!-- Horizontal Weekly Calendar -->
+<div class="flex gap-3 overflow-x-auto px-4 py-2 no-scrollbar">
+<div class="flex flex-col items-center justify-center min-w-[60px] h-20 rounded-xl bg-white/5 border border-white/5">
+<p class="text-[11px] text-[#92a4c9] font-bold uppercase">Mon</p>
+<p class="text-lg font-extrabold">12</p>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[60px] h-20 rounded-xl bg-primary shadow-lg shadow-primary/20">
+<p class="text-[11px] text-white/80 font-bold uppercase">Tue</p>
+<p class="text-lg font-extrabold">13</p>
+<div class="w-1 h-1 bg-white rounded-full mt-1"></div>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[60px] h-20 rounded-xl bg-white/5 border border-white/5">
+<p class="text-[11px] text-[#92a4c9] font-bold uppercase">Wed</p>
+<p class="text-lg font-extrabold">14</p>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[60px] h-20 rounded-xl bg-white/5 border border-white/5">
+<p class="text-[11px] text-[#92a4c9] font-bold uppercase">Thu</p>
+<p class="text-lg font-extrabold">15</p>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[60px] h-20 rounded-xl bg-white/5 border border-white/5 opacity-50">
+<p class="text-[11px] text-[#92a4c9] font-bold uppercase">Fri</p>
+<p class="text-lg font-extrabold">16</p>
+</div>
+<div class="flex flex-col items-center justify-center min-w-[60px] h-20 rounded-xl bg-white/5 border border-white/5">
+<p class="text-[11px] text-[#92a4c9] font-bold uppercase">Sat</p>
+<p class="text-lg font-extrabold">17</p>
+</div>
+</div>
+<!-- Time Slots Grid -->
+<div class="px-4 pt-6">
+<h3 class="text-white text-base font-bold mb-4">Available Time</h3>
+<div class="grid grid-cols-3 gap-3">
+<button class="py-3 px-2 rounded-xl border border-white/10 text-sm font-semibold bg-white/5 hover:bg-white/10">09:00 AM</button>
+<button class="py-3 px-2 rounded-xl border border-primary text-primary text-sm font-bold bg-primary/10">10:30 AM</button>
+<button class="py-3 px-2 rounded-xl border border-white/10 text-sm font-semibold bg-white/5 hover:bg-white/10">11:00 AM</button>
+<button class="py-3 px-2 rounded-xl border border-white/10 text-sm font-semibold bg-white/5 hover:bg-white/10">01:30 PM</button>
+<button class="py-3 px-2 rounded-xl border border-white/10 text-sm font-semibold bg-white/5 hover:bg-white/10">02:00 PM</button>
+<button class="py-3 px-2 rounded-xl border border-white/10 text-[#92a4c9] text-sm font-semibold bg-white/5 opacity-30 cursor-not-allowed">04:30 PM</button>
+</div>
+</div>
+<!-- Location / Distance Section -->
+<div class="px-4 pt-8">
+<h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] mb-4">Location &amp; Distance</h3>
+<div class="relative w-full h-40 rounded-2xl overflow-hidden bg-[#232f48]">
+<div class="absolute inset-0 bg-cover bg-center opacity-70 grayscale contrast-125" data-alt="Modern dark-themed city map showing current location and doctor clinic" data-location="San Francisco, CA" style='background-image: url("imagenes/perfil_doctor_reserva_imagen_1.jpg");'>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 to-transparent"></div>
+<!-- Doctor Marker -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<div class="bg-primary p-2 rounded-full shadow-lg shadow-primary/40 border-2 border-white">
+<span class="material-symbols-outlined text-white text-base">medical_services</span>
+</div>
+</div>
+<div class="absolute bottom-3 left-3 right-3 bg-background-dark/90 backdrop-blur-sm p-3 rounded-xl border border-white/10 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-white/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">near_me</span>
+</div>
+<div>
+<p class="text-xs text-[#92a4c9] font-medium uppercase tracking-wider">Distance</p>
+<p class="text-sm font-bold text-white">2.4 miles away</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs text-[#92a4c9] font-medium uppercase tracking-wider">Travel Time</p>
+<p class="text-sm font-bold text-primary">~12 mins</p>
+</div>
+</div>
+</div>
+<p class="mt-4 text-[#92a4c9] text-sm leading-relaxed px-1">
+<span class="material-symbols-outlined text-sm align-middle mr-1">location_on</span>
+                124 Medical Plaza, Suite 402, Downtown Heights
+            </p>
+</div>
+</main>
+<!-- Sticky Bottom Booking Button -->
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-white/5">
+<div class="max-w-md mx-auto flex gap-4">
+<button class="flex items-center justify-center size-14 rounded-xl border border-white/10 bg-white/5 text-white">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+<button class="flex-1 bg-primary hover:bg-blue-600 text-white text-base font-extrabold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-[0.98]">
+                Book Appointment
+            </button>
+</div>
+<!-- iOS Home Indicator Spacing -->
+<div class="h-6"></div>
+</div>
+</body></html>

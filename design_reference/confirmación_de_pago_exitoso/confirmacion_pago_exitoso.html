@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Confirmación de Pago</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#0d1b12] dark:text-gray-100 font-display min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-primary/30">
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col items-center pt-16 px-6 pb-24">
+<!-- Status Indicator Section -->
+<div class="flex flex-col items-center justify-center mb-8 animate-[bounce_1s_ease-out_1]">
+<div class="relative flex items-center justify-center w-24 h-24 rounded-full bg-primary/20 mb-6">
+<div class="absolute w-full h-full rounded-full bg-primary/20 animate-ping opacity-75"></div>
+<div class="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-background-dark shadow-lg shadow-primary/40">
+<span class="material-symbols-outlined text-4xl font-bold">check</span>
+</div>
+</div>
+<h2 class="text-2xl font-bold tracking-tight text-center text-[#0d1b12] dark:text-white mb-2">
+                Pago realizado con éxito
+            </h2>
+<p class="text-base text-gray-500 dark:text-gray-400 text-center font-medium">
+                Tu cita ha sido confirmada.
+            </p>
+</div>
+<!-- Amount Display -->
+<div class="mb-10 text-center">
+<h1 class="text-4xl font-extrabold text-[#0d1b12] dark:text-white tracking-tight">
+                $850.00 <span class="text-xl text-gray-400 font-medium">MXN</span>
+</h1>
+</div>
+<!-- Appointment Card -->
+<div class="w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+<!-- Doctor Header -->
+<div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center gap-4">
+<div class="relative h-14 w-14 flex-shrink-0">
+<img alt="Doctora sonriendo con bata blanca" class="h-full w-full rounded-full object-cover border-2 border-primary/20" data-alt="Doctora sonriendo con bata blanca" src="imagenes/confirmacion_pago_exitoso_imagen_1.jpg"/>
+</div>
+<div class="flex flex-col">
+<h3 class="font-bold text-lg text-[#0d1b12] dark:text-white leading-tight">Dra. Ana García</h3>
+<span class="text-primary font-medium text-sm">Cardiología</span>
+</div>
+</div>
+<!-- Details List -->
+<div class="p-5 space-y-5">
+<!-- Date & Time -->
+<div class="flex items-start gap-4 group">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">calendar_month</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Fecha y Hora</p>
+<p class="text-sm font-medium text-[#0d1b12] dark:text-gray-200">12 de Octubre, 2023</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">10:30 AM</p>
+</div>
+</div>
+<!-- Location -->
+<div class="flex items-start gap-4 group">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">location_on</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Ubicación</p>
+<p class="text-sm font-medium text-[#0d1b12] dark:text-gray-200">Hospital Médica Sur</p>
+<p class="text-sm text-gray-500 dark:text-gray-400 leading-snug">Torre 2, Consultorio 405<br/>Tlalpan, CDMX</p>
+</div>
+</div>
+</div>
+<!-- Mini Map Visual -->
+<div class="h-24 w-full relative bg-gray-100 dark:bg-gray-900" data-alt="Mapa abstracto mostrando la ubicación del hospital" data-location="Mexico City" style='background-image: url("imagenes/confirmacion_pago_exitoso_imagen_2.jpg"); background-size: cover; background-position: center;'>
+<div class="absolute inset-0 bg-black/10 flex items-center justify-center">
+<div class="bg-white dark:bg-gray-800 p-1.5 rounded-full shadow-lg">
+<span class="material-symbols-outlined text-primary text-xl">location_on</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Fixed Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 p-4 pb-8 safe-area-bottom z-50">
+<div class="max-w-md mx-auto flex flex-col gap-3">
+<button class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-[#0fd650] text-[#052e16] font-bold py-4 px-6 rounded-xl transition-all active:scale-[0.98] shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-xl">home</span>
+                Volver al Inicio
+            </button>
+<button class="w-full flex items-center justify-center gap-2 bg-transparent border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-4 px-6 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined text-xl">receipt_long</span>
+                Ver Comprobante
+            </button>
+</div>
+</div>
+</body></html>
