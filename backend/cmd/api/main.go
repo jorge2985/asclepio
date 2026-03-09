@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
+	"time"
 
 	"asclepio/internal/appointment"
+	"asclepio/internal/config"
 	"asclepio/internal/database"
 	"asclepio/internal/doctor"
 	"asclepio/internal/identity"
+	ascMiddleware "asclepio/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,28 +18,21 @@ import (
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		// Default local
-		dbURL = "postgres://postgres:18zeta29@localhost:5433/asclepio?sslmode=disable"
-	}
+	// 1. Cargar Configuración
+	cfg := config.Cargar()
 
-	// 1. Conexión a BD
+	// 2. Conexión a BD
 	fmt.Println("Conectando a base de datos...")
-	bd, err := database.NuevoServicioBD(dbURL)
+	bd, err := database.NuevoServicioBD(cfg.DatabaseURL)
 	if err != nil {
 		fmt.Printf("Error fatal conectando a BD: %s\n", err)
-		os.Exit(1)
+		return
 	}
 	defer bd.Cerrar()
 	fmt.Println("Conexión exitosa.")
 
-	// 2. Inicializar Servicios
-	svcIdentity := identity.NuevoServicio(bd)
+	// 3. Inicializar Servicios
+	svcIdentity := identity.NuevoServicio(bd, cfg)
 	handlerIdentity := identity.NuevoHandler(svcIdentity)
 
 	svcDoctor := doctor.NuevoServicio(bd)
@@ -46,14 +41,17 @@ func main() {
 	svcAppt := appointment.NuevoServicio(bd)
 	handlerAppt := appointment.NuevoHandler(svcAppt)
 
-	// 3. Router
+	// 4. Rate Limiter (5 intentos por minuto para login/verificación)
+	limiterLogin := ascMiddleware.NuevoRateLimiter(5, 1*time.Minute)
+
+	// 5. Router principal
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// CORS - Permitir peticiones desde el frontend
+	// CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8081", "http://localhost:19006", "http://localhost:*"},
+		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-User-ID"},
 		ExposedHeaders:   []string{"Link"},
@@ -63,13 +61,20 @@ func main() {
 
 	r.Use(middleware.AllowContentType("application/json"))
 
-	// r.Use(AuthMiddleware) -> Pendiente, usando Header X-User-ID por ahora para simplicidad
-
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
-		r.Route("/auth", handlerIdentity.RegistrarRutas)
-		r.Route("/doctores", handlerDoctor.RegistrarRutas)
-		r.Route("/citas", handlerAppt.RegistrarRutas)
+		// --- Rutas Públicas (con rate limit en login) ---
+		r.Route("/auth", func(rAuth chi.Router) {
+			handlerIdentity.RegistrarRutas(rAuth, limiterLogin.Middleware)
+		})
+
+		// --- Rutas Protegidas ---
+		r.Group(func(rProtected chi.Router) {
+			rProtected.Use(ascMiddleware.AuthMiddleware(cfg.JWTSecret))
+
+			rProtected.Route("/doctores", handlerDoctor.RegistrarRutas)
+			rProtected.Route("/citas", handlerAppt.RegistrarRutas)
+		})
 	})
 
 	// Health Check
@@ -77,8 +82,8 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	fmt.Printf("Servidor iniciando en puerto %s...\n", port)
-	err = http.ListenAndServe(":"+port, r)
+	fmt.Printf("Servidor iniciando en puerto %s...\n", cfg.Port)
+	err = http.ListenAndServe(":"+cfg.Port, r)
 	if err != nil {
 		fmt.Printf("Error iniciando servidor: %s\n", err)
 	}

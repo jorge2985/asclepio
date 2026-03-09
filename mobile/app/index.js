@@ -7,6 +7,10 @@ import { useAuth } from '../hooks/useAuth';
 import { validarLogin } from '../utils/validation';
 import { colors, spacing, fonts, borderRadius } from '../styles/theme';
 
+const getRutaDestino = (usuario) => {
+    return usuario?.rol === 'medico' ? '/(doctor)' : '/(tabs)';
+};
+
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,7 +27,7 @@ export default function LoginScreen() {
     useEffect(() => {
         const navigationReady = rootNavigationState?.key;
         if (usuario && !cargando && navigationReady) {
-            router.replace('/(tabs)');
+            router.replace(getRutaDestino(usuario));
         }
     }, [usuario, cargando, rootNavigationState?.key]);
 
@@ -36,11 +40,18 @@ export default function LoginScreen() {
         }
 
         setErrores({});
-        const exito = await login(email, password);
-        if (exito) {
-            // Pequeño delay para asegurar que el layout esté montado
+        const resultado = await login(email, password);
+
+        if (resultado === 'verificacion') {
+            // Redirigir a pantalla de verificación 2FA
             setTimeout(() => {
-                router.replace('/(tabs)');
+                router.push('/auth/verificacion');
+            }, 100);
+        } else if (resultado === 'ok') {
+            // Login directo (sin 2FA, compatibilidad)
+            setTimeout(() => {
+                const { usuario: usr } = require('../stores/authStore').default.getState();
+                router.replace(getRutaDestino(usr));
             }, 100);
         }
     };

@@ -59,8 +59,12 @@ api.interceptors.request.use(async (config) => {
 
 // Servicio de Autenticación
 export const servicioAutenticacion = {
-    // Función para ingreso (login)
+    // Función para ingreso (login) — ahora retorna verificacion_id
     ingreso: (email, password) => api.post('/auth/login', { email, password }),
+    // Verificar código 2FA — retorna token + usuario
+    verificar: (verificacion_id, codigo) => api.post('/auth/verificar', { verificacion_id, codigo }),
+    // Reenviar código de verificación
+    reenviarCodigo: (verificacion_id) => api.post('/auth/reenviar-codigo', { verificacion_id }),
     // Función para registro de nuevos usuarios
     registro: (datos) => api.post('/auth/registro', datos),
 };

@@ -9,8 +9,11 @@ import { servicioAutenticacion } from '../services/api';
 const usarStoreAutenticacion = create((set, get) => ({
     usuario: null,
     token: null,
-    cargando: false, // isLoading -> cargando
+    cargando: false,
     error: null,
+
+    // Estado de verificación 2FA
+    verificacionPendiente: null, // { verificacion_id, email_enmascarado }
 
     // Hidratar: Recuperar sesión guardada al abrir la app
     hidratar: async () => {
@@ -36,26 +39,30 @@ const usarStoreAutenticacion = create((set, get) => ({
         }
     },
 
-    // Función de Ingreso (Login)
+    // Función de Ingreso (Login) — Ahora retorna verificación pendiente
     ingreso: async (email, password) => {
         try {
-            set({ cargando: true, error: null });
+            set({ cargando: true, error: null, verificacionPendiente: null });
             const respuesta = await servicioAutenticacion.ingreso(email, password);
 
-            const { token, usuario } = respuesta.data;
+            const data = respuesta.data;
 
-            // Guardar de forma segura
-            // Guardar de forma segura (o localStorage en web)
-            if (Platform.OS === 'web') {
-                localStorage.setItem('user_token', token);
-                localStorage.setItem('user_data', JSON.stringify(usuario));
-            } else {
-                await SecureStore.setItemAsync('user_token', token);
-                await SecureStore.setItemAsync('user_data', JSON.stringify(usuario));
+            if (data.requiere_verificacion) {
+                // Guardar estado de verificación pendiente
+                set({
+                    verificacionPendiente: {
+                        verificacion_id: data.verificacion_id,
+                        email_enmascarado: data.email_enmascarado,
+                    },
+                });
+                return 'verificacion'; // Indica que necesita 2FA
             }
 
+            // Fallback: si el backend retorna token directamente (compat)
+            const { token, usuario } = data;
+            await guardarSesion(token, usuario);
             set({ token, usuario });
-            return true;
+            return 'ok';
         } catch (error) {
             const { manejarError, registrarError } = require('../services/errorHandler');
             registrarError(error, 'Login');
@@ -67,18 +74,71 @@ const usarStoreAutenticacion = create((set, get) => ({
         }
     },
 
+    // Verificar código 2FA
+    verificarCodigo: async (codigo) => {
+        try {
+            set({ cargando: true, error: null });
+            const { verificacionPendiente } = get();
+            if (!verificacionPendiente) {
+                set({ error: { message: 'No hay verificación pendiente' } });
+                return false;
+            }
+
+            const respuesta = await servicioAutenticacion.verificar(
+                verificacionPendiente.verificacion_id,
+                codigo
+            );
+
+            const { token, usuario } = respuesta.data;
+
+            // Guardar sesión
+            await guardarSesion(token, usuario);
+            set({ token, usuario, verificacionPendiente: null });
+            return true;
+        } catch (error) {
+            const { manejarError, registrarError } = require('../services/errorHandler');
+            registrarError(error, 'Verificación 2FA');
+            const mensajeError = manejarError(error);
+            set({ error: { message: mensajeError } });
+            return false;
+        } finally {
+            set({ cargando: false });
+        }
+    },
+
+    // Reenviar código de verificación
+    reenviarCodigo: async () => {
+        try {
+            set({ error: null });
+            const { verificacionPendiente } = get();
+            if (!verificacionPendiente) return false;
+
+            const respuesta = await servicioAutenticacion.reenviarCodigo(
+                verificacionPendiente.verificacion_id
+            );
+
+            const data = respuesta.data;
+            set({
+                verificacionPendiente: {
+                    verificacion_id: data.verificacion_id,
+                    email_enmascarado: data.email_enmascarado,
+                },
+            });
+            return true;
+        } catch (error) {
+            const { manejarError, registrarError } = require('../services/errorHandler');
+            registrarError(error, 'Reenviar Código');
+            const mensajeError = manejarError(error);
+            set({ error: { message: mensajeError } });
+            return false;
+        }
+    },
+
     // Función de Registro
     registro: async (datos) => {
         try {
             set({ cargando: true, error: null });
-            const respuesta = await servicioAutenticacion.registro(datos);
-
-            // Asumimos que el backend retorna lo mismo que login al registrar, 
-            // o si no, hacemos login automático. 
-            // En nuestra implementación actual: Returns &Usuario (sin token).
-            // Por lo tanto, después del registro exitoso, el usuario debe ir a login o logueamos auto.
-            // Ajustamos para devolver true y que la UI redirija a login.
-
+            await servicioAutenticacion.registro(datos);
             return true;
         } catch (error) {
             const { manejarError, registrarError } = require('../services/errorHandler');
@@ -100,8 +160,19 @@ const usarStoreAutenticacion = create((set, get) => ({
             await SecureStore.deleteItemAsync('user_token');
             await SecureStore.deleteItemAsync('user_data');
         }
-        set({ usuario: null, token: null });
+        set({ usuario: null, token: null, verificacionPendiente: null });
     },
 }));
+
+// Helper para guardar sesión
+async function guardarSesion(token, usuario) {
+    if (Platform.OS === 'web') {
+        localStorage.setItem('user_token', token);
+        localStorage.setItem('user_data', JSON.stringify(usuario));
+    } else {
+        await SecureStore.setItemAsync('user_token', token);
+        await SecureStore.setItemAsync('user_data', JSON.stringify(usuario));
+    }
+}
 
 export default usarStoreAutenticacion;
