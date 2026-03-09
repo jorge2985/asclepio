@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
+import { colors, spacing, borderRadius } from '../../styles/theme';
 
-import { servicioDoctores } from '../../services/api';
+import { servicioCitas, servicioDoctores } from '../../services/api';
 
 export default function DetalleMedicoScreen() {
     const { id } = useLocalSearchParams();
@@ -20,6 +20,7 @@ export default function DetalleMedicoScreen() {
     const [tipoVisita, setTipoVisita] = useState('clinica'); // 'clinica' | 'domicilio'
     const [fechaSeleccionada, setFechaSeleccionada] = useState(0); // Índice del día
     const [horaSeleccionada, setHoraSeleccionada] = useState(null);
+    const [reservando, setReservando] = useState(false);
 
     React.useEffect(() => {
         if (id) {
@@ -53,6 +54,54 @@ export default function DetalleMedicoScreen() {
     const horarios = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
 
     const volver = () => router.back();
+
+    const crearFechaHoraISO = () => {
+        if (!horaSeleccionada) return null;
+
+        const [horaBase, minutos] = horaSeleccionada.slice(0, 5).split(':').map(Number);
+        const esPM = horaSeleccionada.includes('PM');
+        const hora24 = (horaBase % 12) + (esPM ? 12 : 0);
+
+        const objetivo = new Date();
+        objetivo.setHours(hora24, minutos, 0, 0);
+        objetivo.setDate(objetivo.getDate() + fechaSeleccionada);
+
+        return objetivo.toISOString();
+    };
+
+    const reservarCita = async () => {
+        if (!horaSeleccionada) {
+            Alert.alert('Selecciona una hora', 'Debes elegir un horario para continuar.');
+            return;
+        }
+
+        const fechaHora = crearFechaHoraISO();
+        const payload = {
+            medico_id: medico.id,
+            fecha_hora: fechaHora,
+            motivo: `Reserva desde app (${tipoVisita})`,
+            direccion: tipoVisita === 'domicilio' ? 'Domicilio del paciente' : '',
+        };
+
+        try {
+            setReservando(true);
+            const respuesta = await servicioCitas.crear(payload);
+            router.push({
+                pathname: '/pago/seleccion',
+                params: {
+                    citaId: respuesta.data?.id,
+                    medicoNombre: medico.nombre_completo,
+                    especialidad: medico.especialidad,
+                    fechaHora,
+                },
+            });
+        } catch (error) {
+            console.error('Error creando cita', error);
+            Alert.alert('No se pudo reservar', 'Inténtalo nuevamente en unos minutos.');
+        } finally {
+            setReservando(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -157,10 +206,11 @@ export default function DetalleMedicoScreen() {
             {/* Footer Botón Reserva */}
             <View style={styles.footer}>
                 <TouchableOpacity
-                    style={styles.bookButton}
-                    onPress={() => router.push('/pago/seleccion')}
+                    style={[styles.bookButton, reservando && styles.bookButtonDisabled]}
+                    onPress={reservarCita}
+                    disabled={reservando}
                 >
-                    <Text style={styles.bookButtonText}>Reservar Cita</Text>
+                    <Text style={styles.bookButtonText}>{reservando ? 'Reservando...' : 'Reservar Cita'}</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -368,6 +418,9 @@ const styles = StyleSheet.create({
         padding: spacing.m,
         borderRadius: borderRadius.l,
         alignItems: 'center',
+    },
+    bookButtonDisabled: {
+        opacity: 0.7,
     },
     bookButtonText: {
         color: colors.white,

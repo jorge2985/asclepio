@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
+import { colors, spacing, borderRadius } from '../../styles/theme';
 
 import { servicioCitas } from '../../services/api';
 
@@ -31,24 +31,62 @@ export default function PantallaHistorial() {
     };
 
     const agruparPorMes = (citas) => {
-        // Lógica simple de agrupación
-        // Para demo, asumimos que todas van a "Recientes" o procesamos fecha real
         if (citas.length === 0) return [];
-        return [{
-            mes: 'Recientes',
-            citas: citas.map(c => ({
-                id: c.id,
-                doctor: c.medico_nombre || 'Doctor',
-                fecha: new Date(c.fecha_hora).toLocaleDateString(),
-                especialidad: c.medico_especialidad || 'General',
-                tipo: 'Consultorio',
+
+        const grupos = citas.reduce((acc, cita) => {
+            const fecha = new Date(cita.fecha_hora);
+            const llaveMes = new Intl.DateTimeFormat('es-ES', {
+                month: 'long',
+                year: 'numeric',
+            }).format(fecha);
+
+            if (!acc[llaveMes]) {
+                acc[llaveMes] = [];
+            }
+
+            acc[llaveMes].push({
+                id: cita.id,
+                doctor: cita.medico_nombre || 'Doctor',
+                fecha: fecha.toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                }),
+                especialidad: cita.medico_especialidad || 'General',
+                tipo: cita.direccion_atencion ? 'Domicilio' : 'Consultorio',
                 imagen: null,
-                accion: c.estado === 'completada' ? 'Calificar' : 'Ver Detalles'
-            }))
-        }];
+                accion: cita.estado === 'completada' ? 'Calificar' : 'Ver Detalles',
+            });
+
+            return acc;
+        }, {});
+
+        return Object.entries(grupos).map(([mes, citasMes]) => ({
+            mes,
+            citas: citasMes,
+        }));
     };
 
     const volver = () => router.back();
+
+    if (cargando) {
+        return (
+            <View style={styles.container}>
+                <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={volver} style={styles.backButton}>
+                            <FontAwesome name="arrow-left" size={20} color={colors.textMain} />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>Historial Médico</Text>
+                        <View style={{ width: 40 }} />
+                    </View>
+                </SafeAreaView>
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.emptyText}>Cargando historial...</Text>
+                </View>
+            </View>
+        );
+    }
 
     const TarjetaCita = ({ cita }) => (
         <View style={styles.card}>
@@ -118,6 +156,10 @@ export default function PantallaHistorial() {
             </SafeAreaView>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
+                {!cargando && historial.length === 0 && (
+                    <Text style={styles.emptyText}>Aún no tienes citas registradas.</Text>
+                )}
+
                 {historial.map((grupo, index) => (
                     <View key={index} style={styles.monthSection}>
                         <View style={styles.monthHeader}>
@@ -164,6 +206,11 @@ const styles = StyleSheet.create({
         padding: spacing.l,
         paddingBottom: 40,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     monthSection: {
         marginBottom: spacing.l,
     },
@@ -183,6 +230,12 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 1,
         backgroundColor: colors.gray[200],
+    },
+    emptyText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        marginBottom: spacing.l,
     },
     card: {
         backgroundColor: colors.white,

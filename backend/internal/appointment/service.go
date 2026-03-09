@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"asclepio/internal/database"
+	ascMiddleware "asclepio/internal/middleware"
 )
 
 // --- Models ---
@@ -114,17 +115,20 @@ func (h *Handler) RegistrarRutas(r chi.Router) {
 }
 
 func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
-	// Obtener ID del usuario autenticado (se asume Middleware de Auth que inyecta user_id en context)
-	// Como no tenemos el middleware aún inyectando al contexto en este código simple, usaremos un header simulado o placeholder
-	// En producción, usar: userID := r.Context().Value("user_id").(uuid.UUID)
-
-	// SIMULACION: Leer header X-User-ID (en endpoint protegido usaríamos JWT claims)
-	userIDStr := r.Header.Get("X-User-ID")
+	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		http.Error(w, "Falta Header X-User-ID (Auth pendiente)", http.StatusUnauthorized)
+		// Compatibilidad temporal con clientes antiguos
+		userIDStr = r.Header.Get("X-User-ID")
+	}
+	if userIDStr == "" {
+		http.Error(w, "Usuario no autenticado", http.StatusUnauthorized)
 		return
 	}
-	pacienteID, _ := uuid.Parse(userIDStr)
+	pacienteID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Usuario inválido", http.StatusUnauthorized)
+		return
+	}
 
 	var req CrearCitaRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -144,12 +148,20 @@ func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Historial(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.Header.Get("X-User-ID")
+	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		http.Error(w, "Falta Header X-User-ID", http.StatusUnauthorized)
+		// Compatibilidad temporal con clientes antiguos
+		userIDStr = r.Header.Get("X-User-ID")
+	}
+	if userIDStr == "" {
+		http.Error(w, "Usuario no autenticado", http.StatusUnauthorized)
 		return
 	}
-	pacienteID, _ := uuid.Parse(userIDStr)
+	pacienteID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Usuario inválido", http.StatusUnauthorized)
+		return
+	}
 
 	citas, err := h.svc.ListarPorPaciente(r.Context(), pacienteID)
 	if err != nil {

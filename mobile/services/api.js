@@ -32,24 +32,15 @@ const api = axios.create({
 api.interceptors.request.use(async (config) => {
     try {
         let token;
-        let datosUsuarioStr;
 
         if (Platform.OS === 'web') {
             token = localStorage.getItem('user_token');
-            datosUsuarioStr = localStorage.getItem('user_data');
         } else {
             token = await SecureStore.getItemAsync('user_token');
-            datosUsuarioStr = await SecureStore.getItemAsync('user_data');
         }
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-        }
-
-        // TEMPORAL: Enviar ID de usuario en header
-        if (datosUsuarioStr) {
-            const usuario = JSON.parse(datosUsuarioStr);
-            config.headers['X-User-ID'] = usuario.id;
         }
     } catch (error) {
         console.error('Error leyendo token', error);
