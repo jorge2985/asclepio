@@ -26,6 +26,7 @@ type Repository interface {
 	// Usuario
 	FindByEmail(ctx context.Context, email string) (*Usuario, string, error)
 	CreateUser(ctx context.Context, tx pgx.Tx, id uuid.UUID, email, passwordHash string, rol Rol) (time.Time, error)
+	ActualizarPushToken(ctx context.Context, id uuid.UUID, token string) error
 
 	// Médico
 	CreateMedico(ctx context.Context, tx pgx.Tx, usuarioID uuid.UUID, nombreCompleto, especialidad string, tarifaHora float64) error
@@ -101,6 +102,12 @@ func (r *postgresRepository) CreateUser(ctx context.Context, tx pgx.Tx, id uuid.
 	var fechaCreacion time.Time
 	err := tx.QueryRow(ctx, query, id, email, passwordHash, rol).Scan(&fechaCreacion)
 	return fechaCreacion, err
+}
+
+func (r *postgresRepository) ActualizarPushToken(ctx context.Context, id uuid.UUID, token string) error {
+	query := `UPDATE usuarios SET expo_push_token = $1 WHERE id = $2`
+	_, err := r.pool.Exec(ctx, query, token, id)
+	return err
 }
 
 // CreateMedico crea un perfil de médico

@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	ascMiddleware "asclepio/internal/middleware"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -28,6 +31,10 @@ func (h *Handler) RegistrarRutas(r chi.Router, rateLimiter func(http.Handler) ht
 		r.Post("/verificar", h.handleVerificar)
 		r.Post("/reenviar-codigo", h.handleReenviarCodigo)
 	}
+}
+
+func (h *Handler) RegistrarRutasProtegidas(r chi.Router) {
+	r.Put("/push-token", h.handleGuardarPushToken)
 }
 
 func (h *Handler) handleRegistro(w http.ResponseWriter, r *http.Request) {
@@ -117,4 +124,31 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *Handler) handleGuardarPushToken(w http.ResponseWriter, r *http.Request) {
+	userIDStr := ascMiddleware.GetUserID(r.Context())
+	if userIDStr == "" {
+		userIDStr = r.Header.Get("X-User-ID")
+	}
+	usuarioID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Usuario inválido", http.StatusUnauthorized)
+		return
+	}
+
+	var req PushTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "JSON inválido", http.StatusBadRequest)
+		return
+	}
+
+	err = h.svc.GuardarPushToken(r.Context(), req, usuarioID)
+	if err != nil {
+		http.Error(w, "Error guardando push token", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"mensaje": "Push token actualizado correctamente"})
 }

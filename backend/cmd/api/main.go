@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -10,7 +10,10 @@ import (
 	"asclepio/internal/database"
 	"asclepio/internal/doctor"
 	"asclepio/internal/identity"
+	"asclepio/internal/logger"
 	ascMiddleware "asclepio/internal/middleware"
+	"asclepio/internal/notification"
+	"asclepio/internal/review"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,16 +23,17 @@ import (
 func main() {
 	// 1. Cargar Configuración
 	cfg := config.Cargar()
+	logger.Info("Iniciando Asclepio API", "env", "development")
 
 	// 2. Conexión a BD
-	fmt.Println("Conectando a base de datos...")
+	logger.Info("Conectando a base de datos...")
 	bd, err := database.NuevoServicioBD(cfg.DatabaseURL)
 	if err != nil {
-		fmt.Printf("Error fatal conectando a BD: %s\n", err)
+		logger.Error("Error fatal conectando a BD", "error", err)
 		return
 	}
 	defer bd.Cerrar()
-	fmt.Println("Conexión exitosa.")
+	logger.Info("Conexión a base de datos exitosa")
 
 	// 3. Inicializar Servicios
 	svcIdentity := identity.NuevoServicio(bd, cfg)
@@ -38,8 +42,13 @@ func main() {
 	svcDoctor := doctor.NuevoServicio(bd)
 	handlerDoctor := doctor.NuevoHandler(svcDoctor)
 
-	svcAppt := appointment.NuevoServicio(bd)
+	svcNotif := notification.NuevoServicioPush(bd)
+
+	svcAppt := appointment.NuevoServicio(bd, svcNotif)
 	handlerAppt := appointment.NuevoHandler(svcAppt)
+
+	svcReview := review.NuevoServicio(bd)
+	handlerReview := review.NuevoHandler(svcReview)
 
 	// 4. Rate Limiter (5 intentos por minuto para login/verificación)
 	limiterLogin := ascMiddleware.NuevoRateLimiter(5, 1*time.Minute)
@@ -63,28 +72,57 @@ func main() {
 
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
-		// --- Rutas Públicas (con rate limit en login) ---
+		// --- Rutas de Autenticación / Identidad ---
 		r.Route("/auth", func(rAuth chi.Router) {
+			// Rutas Públicas (con rate limit en login)
 			handlerIdentity.RegistrarRutas(rAuth, limiterLogin.Middleware)
+
+			// Rutas Protegidas bajo /auth
+			rAuth.Group(func(rAuthProtected chi.Router) {
+				rAuthProtected.Use(ascMiddleware.AuthMiddleware(cfg.JWTSecret))
+				handlerIdentity.RegistrarRutasProtegidas(rAuthProtected)
+			})
 		})
 
-		// --- Rutas Protegidas ---
+		// --- Rutas Protegidas Generales ---
 		r.Group(func(rProtected chi.Router) {
 			rProtected.Use(ascMiddleware.AuthMiddleware(cfg.JWTSecret))
 
 			rProtected.Route("/doctores", handlerDoctor.RegistrarRutas)
 			rProtected.Route("/citas", handlerAppt.RegistrarRutas)
+			rProtected.Route("/resenas", handlerReview.RegistrarRutas)
 		})
 	})
 
-	// Health Check
+	// Health Check enriquecido con JSON y estado de BD
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+		type healthResponse struct {
+			Status   string `json:"status"`
+			Database string `json:"database"`
+			Version  string `json:"version"`
+		}
+
+		res := healthResponse{
+			Status:  "ok",
+			Version: "1.0.0",
+		}
+
+		// Verificar conectividad de BD
+		if err := bd.Pool.Ping(r.Context()); err != nil {
+			res.Database = "unavailable"
+			res.Status = "degraded"
+			w.WriteHeader(http.StatusServiceUnavailable)
+		} else {
+			res.Database = "ok"
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(res)
 	})
 
-	fmt.Printf("Servidor iniciando en puerto %s...\n", cfg.Port)
+	logger.Info("Servidor escuchando", "port", cfg.Port)
 	err = http.ListenAndServe(":"+cfg.Port, r)
 	if err != nil {
-		fmt.Printf("Error iniciando servidor: %s\n", err)
+		logger.Error("Error iniciando servidor", "error", err)
 	}
 }

@@ -1,0 +1,115 @@
+name: CI — Asclepio
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Tests Backend Go
+  # ─────────────────────────────────────────────
+  backend-tests:
+    name: Backend Tests (Go)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: asclepio_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: backend/go.sum
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: go mod download
+
+      - name: Ejecutar migraciones de prueba
+        working-directory: backend
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in database/migrations/*.sql; do
+            psql -h localhost -U postgres -d asclepio_test -f "$f" || true
+          done
+
+      - name: Ejecutar tests unitarios
+        working-directory: backend
+        run: go test ./internal/... -v -count=1
+
+      - name: Ejecutar tests de integración (con BD)
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: "postgres://postgres:postgres@localhost:5432/asclepio_test?sslmode=disable"
+          JWT_SECRET: "ci-test-secret-key-1234567890"
+        run: go test ./cmd/api/... -v -count=1
+
+      - name: Verificar build
+        working-directory: backend
+        run: go build ./...
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Tests Frontend Jest
+  # ─────────────────────────────────────────────
+  frontend-tests:
+    name: Frontend Tests (Jest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: mobile
+        run: npm ci --legacy-peer-deps
+
+      - name: Ejecutar tests Jest
+        working-directory: mobile
+        run: npm test -- --no-coverage --passWithNoTests
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Linting Go
+  # ─────────────────────────────────────────────
+  backend-lint:
+    name: Backend Lint (Go vet)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: backend/go.sum
+
+      - name: go vet
+        working-directory: backend
+        run: go vet ./...

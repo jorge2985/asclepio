@@ -46,5 +46,22 @@ VALUES (
     'confirmada',
     50.00,
     'Calle Falsa 123'
-)
 ON CONFLICT DO NOTHING;
+
+-- Disponibilidad del Doctor 1 (Dr. Ana García - Lunes a Viernes de 09:00 a 14:00 y 15:00 a 18:00)
+INSERT INTO dispo_medicos (medico_id, dia_semana, hora_inicio, hora_fin) VALUES 
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, '09:00:00', '14:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, '15:00:00', '18:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 2, '09:00:00', '14:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 2, '15:00:00', '18:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 3, '09:00:00', '14:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 3, '15:00:00', '18:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 4, '09:00:00', '14:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 4, '15:00:00', '18:00:00'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 5, '09:00:00', '14:00:00');
+
+-- Disponibilidad del Doctor 2 (Dr. Marcus Thorne - Lunes a Miércoles de 10:00 a 16:00)
+INSERT INTO dispo_medicos (medico_id, dia_semana, hora_inicio, hora_fin) VALUES 
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 1, '10:00:00', '16:00:00'),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 2, '10:00:00', '16:00:00'),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 3, '10:00:00', '16:00:00');

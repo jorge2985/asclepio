@@ -49,6 +49,33 @@ const citasSimuladas = [
 export default function DashboardDoctor() {
     const { usuario } = usarStoreAutenticacion();
     const router = useRouter();
+    const [citas, setCitas] = useState([]);
+    const [cargando, setCargando] = useState(true);
+
+    useEffect(() => {
+        cargarCitas();
+    }, []);
+
+    const cargarCitas = async () => {
+        try {
+            setCargando(true);
+            const res = await servicioCitas.porMedico();
+            setCitas(res.data || []);
+        } catch (error) {
+            console.error('Error cargando citas del médico', error);
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    const handleConfirmar = async (id) => {
+        try {
+            await servicioCitas.confirmar(id);
+            cargarCitas();
+        } catch (error) {
+            console.error('Error confirmando', error);
+        }
+    };
 
     const obtenerSaludo = () => {
         const hora = new Date().getHours();
@@ -110,27 +137,49 @@ export default function DashboardDoctor() {
                             <Text style={styles.seeAll}>Ver Todas</Text>
                         </TouchableOpacity>
                     </View>
-                    {citasSimuladas.map((cita) => (
-                        <View key={cita.id} style={styles.appointmentCard}>
-                            <View style={styles.appointmentLeft}>
-                                <Image
-                                    source={{ uri: 'https://placehold.co/56' }}
-                                    style={styles.appointmentAvatar}
-                                />
-                                <View style={styles.appointmentInfo}>
-                                    <Text style={styles.appointmentName}>{cita.paciente}</Text>
-                                    <Text style={styles.appointmentTime}>{cita.hora} • {cita.dia}</Text>
-                                    <View style={[styles.typeBadge, { backgroundColor: cita.tipoBgColor }]}>
-                                        <FontAwesome name={cita.tipoIcon} size={10} color={cita.tipoTextColor} />
-                                        <Text style={[styles.typeText, { color: cita.tipoTextColor }]}>{cita.tipo}</Text>
+                    {cargando ? (
+                        <Text style={{ padding: 16 }}>Cargando...</Text>
+                    ) : citas.length === 0 ? (
+                        <Text style={{ padding: 16 }}>No hay citas pendientes.</Text>
+                    ) : (
+                        citas.map((cita) => {
+                            const d = new Date(cita.fecha_hora);
+                            const hora = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            const dia = d.toLocaleDateString([], { day: '2-digit', month: 'short' });
+                            const tipo = cita.direccion_atencion ? 'Domicilio' : 'Clínica';
+                            
+                            return (
+                            <View key={cita.id} style={[styles.appointmentCard, cita.estado === 'cancelada' && { opacity: 0.5 }]}>
+                                <View style={styles.appointmentLeft}>
+                                    <Image
+                                        source={{ uri: 'https://placehold.co/56' }}
+                                        style={styles.appointmentAvatar}
+                                    />
+                                    <View style={styles.appointmentInfo}>
+                                        <Text style={styles.appointmentName}>{cita.paciente_nombre}</Text>
+                                        <Text style={styles.appointmentTime}>{hora} • {dia}</Text>
+                                        <View style={[styles.typeBadge, { backgroundColor: '#eff6ff' }]}>
+                                            <FontAwesome name={tipo === 'Domicilio' ? 'home' : 'stethoscope'} size={10} color={'#1d4ed8'} />
+                                            <Text style={[styles.typeText, { color: '#1d4ed8' }]}>{tipo}</Text>
+                                        </View>
                                     </View>
                                 </View>
+                                <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                                    <Text style={{ fontSize: 12, color: dc.primaryDark, fontWeight: 'bold', textTransform: 'capitalize' }}>
+                                        {cita.estado.replace('_', ' ')}
+                                    </Text>
+                                    {cita.estado === 'pendiente_confirmacion' && (
+                                        <TouchableOpacity 
+                                            style={styles.appointmentAction}
+                                            onPress={() => handleConfirmar(cita.id)}
+                                        >
+                                            <FontAwesome name="check" size={16} color={dc.primaryDark} />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
-                            <TouchableOpacity style={styles.appointmentAction}>
-                                <FontAwesome name={cita.tipoIcon === 'home' ? 'map-marker' : 'info-circle'} size={18} color={cita.tipoIcon === 'home' ? dc.primaryDark : '#9ca3af'} />
-                            </TouchableOpacity>
-                        </View>
-                    ))}
+                        )})
+                    )}
                 </View>
 
                 {/* Patient List */}

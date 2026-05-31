@@ -20,6 +20,8 @@ export default function DetalleMedicoScreen() {
     const [tipoVisita, setTipoVisita] = useState('clinica'); // 'clinica' | 'domicilio'
     const [fechaSeleccionada, setFechaSeleccionada] = useState(0); // Índice del día
     const [horaSeleccionada, setHoraSeleccionada] = useState(null);
+    const [horariosDisponibles, setHorariosDisponibles] = useState([]);
+    const [cargandoHorarios, setCargandoHorarios] = useState(false);
     const [reservando, setReservando] = useState(false);
 
     React.useEffect(() => {
@@ -39,19 +41,47 @@ export default function DetalleMedicoScreen() {
         }
     };
 
+    const generarFechas = () => {
+        const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const arr = [];
+        for (let i = 1; i <= 7; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() + i);
+            arr.push({
+                dia: dias[d.getDay()],
+                fecha: d.getDate().toString(),
+                fullDate: d.toISOString().split('T')[0]
+            });
+        }
+        return arr;
+    };
+    const [fechas] = useState(generarFechas());
+
+    React.useEffect(() => {
+        if (medico) {
+            cargarHorarios();
+        }
+    }, [fechaSeleccionada, medico]);
+
+    const cargarHorarios = async () => {
+        if (!medico) return;
+        setCargandoHorarios(true);
+        setHoraSeleccionada(null);
+        try {
+            const fechaAPI = fechas[fechaSeleccionada].fullDate;
+            const res = await servicioCitas.disponibilidad(medico.id, fechaAPI);
+            setHorariosDisponibles(res.data || []);
+        } catch (error) {
+            console.error('Error cargando horarios', error);
+            setHorariosDisponibles([]);
+        } finally {
+            setCargandoHorarios(false);
+        }
+    };
+
     if (cargando || !medico) {
         return <View style={styles.container}><Text style={{ padding: 20 }}>Cargando...</Text></View>;
     }
-
-    const fechas = [
-        { dia: 'Lun', fecha: '12' },
-        { dia: 'Mar', fecha: '13' },
-        { dia: 'Mié', fecha: '14' },
-        { dia: 'Jue', fecha: '15' },
-        { dia: 'Vie', fecha: '16' },
-    ];
-
-    const horarios = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
 
     const volver = () => router.back();
 
@@ -60,13 +90,10 @@ export default function DetalleMedicoScreen() {
 
         const [horaBase, minutos] = horaSeleccionada.slice(0, 5).split(':').map(Number);
         const esPM = horaSeleccionada.includes('PM');
-        const hora24 = (horaBase % 12) + (esPM ? 12 : 0);
+        let hora24 = (horaBase % 12) + (esPM && horaBase !== 12 ? 12 : 0);
+        if (!esPM && horaBase === 12) hora24 = 0;
 
-        const objetivo = new Date();
-        objetivo.setHours(hora24, minutos, 0, 0);
-        objetivo.setDate(objetivo.getDate() + fechaSeleccionada);
-
-        return objetivo.toISOString();
+        return `${fechas[fechaSeleccionada].fullDate}T${hora24.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:00Z`;
     };
 
     const reservarCita = async () => {
@@ -189,15 +216,21 @@ export default function DetalleMedicoScreen() {
                     </ScrollView>
 
                     <View style={styles.timeGrid}>
-                        {horarios.map((hora, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={[styles.timeSlot, horaSeleccionada === hora && styles.timeSlotSelected]}
-                                onPress={() => setHoraSeleccionada(hora)}
-                            >
-                                <Text style={[styles.timeText, horaSeleccionada === hora && styles.textSelected]}>{hora}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {cargandoHorarios ? (
+                            <Text style={styles.bioText}>Buscando horarios disponibles...</Text>
+                        ) : horariosDisponibles.length === 0 ? (
+                            <Text style={styles.bioText}>No hay horarios disponibles para este día.</Text>
+                        ) : (
+                            horariosDisponibles.map((hora, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={[styles.timeSlot, horaSeleccionada === hora && styles.timeSlotSelected]}
+                                    onPress={() => setHoraSeleccionada(hora)}
+                                >
+                                    <Text style={[styles.timeText, horaSeleccionada === hora && styles.textSelected]}>{hora}</Text>
+                                </TouchableOpacity>
+                            ))
+                        )}
                     </View>
                 </View>
 

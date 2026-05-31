@@ -69,6 +69,10 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type PushTokenRequest struct {
+	Token string `json:"token"`
+}
+
 // LoginResponse — respuesta del login antes de verificar 2FA
 type LoginResponse struct {
 	RequiereVerificacion bool   `json:"requiere_verificacion"`
@@ -330,6 +334,13 @@ func (s *Servicio) RefreshToken(ctx context.Context, req RefreshTokenRequest) (*
 		RefreshToken: nuevoRefreshToken,
 		Usuario:      *u,
 	}, nil
+}
+
+func (s *Servicio) GuardarPushToken(ctx context.Context, req PushTokenRequest, usuarioID uuid.UUID) error {
+	if req.Token == "" {
+		return errors.New("token es requerido")
+	}
+	return s.repo.ActualizarPushToken(ctx, usuarioID, req.Token)
 }
 
 // ---- Helpers ----

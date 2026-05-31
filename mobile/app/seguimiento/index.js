@@ -6,21 +6,67 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
 
+import { servicioCitas } from '../../services/api';
+
 const { width, height } = Dimensions.get('window');
 
 export default function PantallaSeguimiento() {
     const router = useRouter();
     const [eta, setEta] = useState(15);
+    const [cita, setCita] = useState(null);
+    const [cargando, setCargando] = useState(true);
 
-    // Simulación de cuenta regresiva
     useEffect(() => {
+        cargarCitaActiva();
+
         const timer = setInterval(() => {
             setEta((prev) => (prev > 1 ? prev - 1 : 1));
         }, 60000); // Reduce 1 min cada 60s simulados
         return () => clearInterval(timer);
     }, []);
 
+    const cargarCitaActiva = async () => {
+        try {
+            setCargando(true);
+            const respuesta = await servicioCitas.historial();
+            const citas = respuesta.data || [];
+            const activa = citas.find(c => c.estado === 'en_camino' || c.estado === 'en_progreso');
+            setCita(activa || null);
+        } catch (error) {
+            console.error('Error cargando cita activa en seguimiento', error);
+        } finally {
+            setCargando(false);
+        }
+    };
+
     const volver = () => router.back();
+
+    if (cargando) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: colors.white, fontSize: 16 }}>Cargando detalles de seguimiento...</Text>
+            </SafeAreaView>
+        );
+    }
+
+    if (!cita) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: spacing.l }]}>
+                <FontAwesome name="map-o" size={60} color={colors.primary} style={{ marginBottom: 20 }} />
+                <Text style={{ color: colors.white, fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 }}>
+                    No hay citas en curso
+                </Text>
+                <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 30 }}>
+                    Actualmente no tienes ninguna cita activa o en camino para realizar el seguimiento en vivo.
+                </Text>
+                <TouchableOpacity onPress={volver} style={[styles.btnPrimary, { paddingHorizontal: spacing.xl, alignSelf: 'center' }]}>
+                    <Text style={styles.btnTextPrimary}>Volver al Inicio</Text>
+                </TouchableOpacity>
+            </SafeAreaView>
+        );
+    }
+
+    const medicoPrimerNombre = cita.paciente_nombre ? cita.paciente_nombre.split(' ')[0] : (cita.medico_nombre ? cita.medico_nombre.split(' ')[0] : 'Médico');
 
     return (
         <View style={styles.container}>
@@ -46,7 +92,9 @@ export default function PantallaSeguimiento() {
                             <View style={styles.statusDotPing} />
                             <View style={styles.statusDot} />
                         </View>
-                        <Text style={styles.statusText}>En camino • {eta} min</Text>
+                        <Text style={styles.statusText}>
+                            {cita.estado === 'en_camino' ? 'En camino' : 'Consulta activa'} • {eta} min
+                        </Text>
                     </View>
 
                     <TouchableOpacity style={styles.iconButton}>
@@ -64,7 +112,7 @@ export default function PantallaSeguimiento() {
                     />
                 </View>
                 <View style={styles.markerLabel}>
-                    <Text style={styles.markerText}>Dr. Ana</Text>
+                    <Text style={styles.markerText}>{medicoPrimerNombre}</Text>
                 </View>
             </View>
 
@@ -89,11 +137,11 @@ export default function PantallaSeguimiento() {
                             </View>
                         </View>
                         <View style={styles.doctorInfo}>
-                            <Text style={styles.doctorName}>Dr. Ana García</Text>
-                            <Text style={styles.doctorSpecialty}>Medicina General</Text>
+                            <Text style={styles.doctorName}>{cita.medico_nombre || 'Médico Asignado'}</Text>
+                            <Text style={styles.doctorSpecialty}>{cita.medico_especialidad || 'Medicina General'}</Text>
                             <View style={styles.ratingRow}>
                                 <FontAwesome name="star" size={12} color={colors.warning} />
-                                <Text style={styles.ratingText}>4.9 (120 reseñas)</Text>
+                                <Text style={styles.ratingText}>Excelente servicio</Text>
                             </View>
                         </View>
                     </View>
@@ -115,9 +163,11 @@ export default function PantallaSeguimiento() {
                         <View style={styles.locationIcon}>
                             <FontAwesome name="home" size={18} color={colors.primary} />
                         </View>
-                        <View>
-                            <Text style={styles.locationLabel}>Destino</Text>
-                            <Text style={styles.locationAddress}>Av. Reforma 222, Juárez, CDMX</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.locationLabel}>Dirección de Atención</Text>
+                            <Text style={styles.locationAddress} numberOfLines={2}>
+                                {cita.direccion_atencion || 'Domicilio Registrado'}
+                            </Text>
                         </View>
                     </View>
 

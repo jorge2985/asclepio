@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"asclepio/internal/database"
+	ascMiddleware "asclepio/internal/middleware"
 )
 
 // --- Models ---
@@ -22,6 +24,22 @@ type Medico struct {
 	TarifaHora     float64   `json:"tarifa_hora"`
 	Ubicacion      string    `json:"ubicacion"`
 	Calificacion   float64   `json:"calificacion"`
+}
+
+type PacienteRelacionado struct {
+	ID             uuid.UUID `json:"id"`
+	NombreCompleto string    `json:"nombre_completo"`
+	Telefono       string    `json:"telefono"`
+	Direccion      string    `json:"direccion"`
+	UltimaVisita   time.Time `json:"ultima_visita"`
+}
+
+type EstadisticasMedico struct {
+	PacientesAtendidos int     `json:"pacientes_atendidos"`
+	Calificacion       float64 `json:"calificacion"`
+	CitasCompletadas   int     `json:"citas_completadas"`
+	CitasPendientes    int     `json:"citas_pendientes"`
+	IngresosEstimados  float64 `json:"ingresos_estimados"`
 }
 
 // --- Repository/Service ---
@@ -72,6 +90,57 @@ func (s *Servicio) ObtenerPorID(ctx context.Context, id uuid.UUID) (*Medico, err
 	return &m, nil
 }
 
+// ListarPacientes retorna la lista de pacientes que han tenido citas con el médico
+func (s *Servicio) ListarPacientes(ctx context.Context, medicoID uuid.UUID) ([]PacienteRelacionado, error) {
+	sql := `
+		SELECT DISTINCT p.usuario_id, p.nombre_completo, COALESCE(p.telefono, ''), COALESCE(p.direccion, ''), MAX(c.fecha_hora) as ultima_visita
+		FROM pacientes p
+		JOIN citas c ON c.paciente_id = p.usuario_id
+		WHERE c.medico_id = $1
+		GROUP BY p.usuario_id, p.nombre_completo, p.telefono, p.direccion
+		ORDER BY ultima_visita DESC
+	`
+	rows, err := s.db.Pool.Query(ctx, sql, medicoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pacientes []PacienteRelacionado
+	for rows.Next() {
+		var pr PacienteRelacionado
+		if err := rows.Scan(&pr.ID, &pr.NombreCompleto, &pr.Telefono, &pr.Direccion, &pr.UltimaVisita); err != nil {
+			return nil, err
+		}
+		pacientes = append(pacientes, pr)
+	}
+	return pacientes, nil
+}
+
+// ObtenerEstadisticas calcula métricas de rendimiento del médico
+func (s *Servicio) ObtenerEstadisticas(ctx context.Context, medicoID uuid.UUID) (*EstadisticasMedico, error) {
+	sql := `
+		SELECT 
+			(SELECT COUNT(DISTINCT paciente_id) FROM citas WHERE medico_id = $1 AND estado NOT IN ('cancelada')) as pacientes_atendidos,
+			(SELECT COALESCE(calificacion, 0.00) FROM medicos WHERE usuario_id = $1) as calificacion,
+			(SELECT COUNT(*) FROM citas WHERE medico_id = $1 AND estado = 'completada') as citas_completadas,
+			(SELECT COUNT(*) FROM citas WHERE medico_id = $1 AND estado IN ('pendiente_confirmacion', 'confirmada')) as citas_pendientes,
+			(SELECT COALESCE(SUM(p.monto), 0.0) FROM pagos p JOIN citas c ON p.cita_id = c.id WHERE c.medico_id = $1 AND p.estado = 'pagado') as ingresos_estimados
+	`
+	var stats EstadisticasMedico
+	err := s.db.Pool.QueryRow(ctx, sql, medicoID).Scan(
+		&stats.PacientesAtendidos,
+		&stats.Calificacion,
+		&stats.CitasCompletadas,
+		&stats.CitasPendientes,
+		&stats.IngresosEstimados,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
 // --- Handler ---
 
 type Handler struct {
@@ -83,6 +152,8 @@ func NuevoHandler(svc *Servicio) *Handler {
 }
 
 func (h *Handler) RegistrarRutas(r chi.Router) {
+	r.Get("/pacientes", h.ListarPacientes)
+	r.Get("/estadisticas", h.ObtenerEstadisticas)
 	r.Get("/", h.Listar)
 	r.Get("/{id}", h.Detalle)
 }
@@ -115,4 +186,54 @@ func (h *Handler) Detalle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(doc)
+}
+
+func (h *Handler) ListarPacientes(w http.ResponseWriter, r *http.Request) {
+	userIDStr := ascMiddleware.GetUserID(r.Context())
+	if userIDStr == "" {
+		userIDStr = r.Header.Get("X-User-ID")
+	}
+	if userIDStr == "" {
+		http.Error(w, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	medicoID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "ID de médico inválido", http.StatusBadRequest)
+		return
+	}
+
+	pacientes, err := h.svc.ListarPacientes(r.Context(), medicoID)
+	if err != nil {
+		http.Error(w, "Error al listar pacientes", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(pacientes)
+}
+
+func (h *Handler) ObtenerEstadisticas(w http.ResponseWriter, r *http.Request) {
+	userIDStr := ascMiddleware.GetUserID(r.Context())
+	if userIDStr == "" {
+		userIDStr = r.Header.Get("X-User-ID")
+	}
+	if userIDStr == "" {
+		http.Error(w, "No autorizado", http.StatusUnauthorized)
+		return
+	}
+	medicoID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "ID de médico inválido", http.StatusBadRequest)
+		return
+	}
+
+	stats, err := h.svc.ObtenerEstadisticas(r.Context(), medicoID)
+	if err != nil {
+		http.Error(w, "Error al obtener estadísticas", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }

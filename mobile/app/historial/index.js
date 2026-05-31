@@ -47,14 +47,11 @@ export default function PantallaHistorial() {
             acc[llaveMes].push({
                 id: cita.id,
                 doctor: cita.medico_nombre || 'Doctor',
-                fecha: fecha.toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                }),
+                fecha: `${fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} • ${fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`,
                 especialidad: cita.medico_especialidad || 'General',
                 tipo: cita.direccion_atencion ? 'Domicilio' : 'Consultorio',
                 imagen: null,
+                estado: cita.estado,
                 accion: cita.estado === 'completada' ? 'Calificar' : 'Ver Detalles',
             });
 
@@ -68,6 +65,15 @@ export default function PantallaHistorial() {
     };
 
     const volver = () => router.back();
+
+    const handleCancelar = async (id) => {
+        try {
+            await servicioCitas.cancelar(id);
+            cargarHistorial(); // Refrescar lista
+        } catch (e) {
+            console.error('Error cancelando', e);
+        }
+    };
 
     if (cargando) {
         return (
@@ -115,30 +121,40 @@ export default function PantallaHistorial() {
             <View style={styles.divider} />
 
             <View style={styles.cardFooter}>
-                <TouchableOpacity
-                    style={[
-                        styles.actionButton,
-                        cita.accion === 'Calificar' ? styles.btnSecondary : styles.btnPrimary
-                    ]}
-                    onPress={() => {
-                        if (cita.accion === 'Calificar') {
-                            router.push('/evaluacion');
-                        } else {
-                            // Lógica para Repetir Cita
-                        }
-                    }}
-                >
-                    <FontAwesome
-                        name={cita.accion === 'Calificar' ? 'star-o' : 'refresh'}
-                        size={14}
-                        color={cita.accion === 'Calificar' ? colors.warning : colors.white}
-                        style={{ marginRight: 6 }}
-                    />
-                    <Text style={[
-                        styles.actionText,
-                        cita.accion === 'Calificar' ? styles.textWarning : styles.textWhite
-                    ]}>{cita.accion}</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {(cita.estado === 'pendiente_confirmacion' || cita.estado === 'confirmada') && (
+                        <>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.btnDanger]}
+                                onPress={() => handleCancelar(cita.id)}
+                            >
+                                <FontAwesome name={'times'} size={14} color={colors.error} style={{ marginRight: 6 }} />
+                                <Text style={styles.textDanger}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.btnPrimary]}
+                                onPress={() => router.push(`/medico/${cita.id}`)}
+                            >
+                                <FontAwesome name={'calendar'} size={14} color={colors.white} style={{ marginRight: 6 }} />
+                                <Text style={styles.textWhite}>Reprogramar</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                    
+                    {cita.estado === 'cancelada' && (
+                        <Text style={{ color: colors.error, fontSize: 13, fontWeight: 'bold', alignSelf: 'center' }}>Cancelada</Text>
+                    )}
+
+                    {cita.estado === 'completada' && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.btnSecondary]}
+                            onPress={() => router.push({ pathname: '/evaluacion', params: { citaId: cita.id, medicoNombre: cita.doctor, medicoEspecialidad: cita.especialidad } })}
+                        >
+                            <FontAwesome name={'star-o'} size={14} color={colors.warning} style={{ marginRight: 6 }} />
+                            <Text style={styles.textWarning}>Calificar</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
         </View>
     );
@@ -327,6 +343,14 @@ const styles = StyleSheet.create({
     },
     textWarning: {
         color: colors.warning,
+        fontWeight: '600',
+        fontSize: 13,
+    },
+    btnDanger: {
+        backgroundColor: colors.error + '15',
+    },
+    textDanger: {
+        color: colors.error,
         fontWeight: '600',
         fontSize: 13,
     },

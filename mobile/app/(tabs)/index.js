@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
 import TarjetaMedico from '../../components/TarjetaMedico';
 import usarStoreAutenticacion from '../../stores/authStore';
 
-import { servicioDoctores } from '../../services/api';
+import { servicioDoctores, servicioCitas } from '../../services/api';
 
 const categorias = [
     'General', 'Cardiología', 'Dermatología', 'Pediatría',
@@ -18,6 +18,7 @@ export default function PantallaInicio() {
     const { usuario } = usarStoreAutenticacion();
     const [busqueda, setBusqueda] = useState('');
     const [doctores, setDoctores] = useState([]);
+    const [citaActiva, setCitaActiva] = useState(null);
     const [cargando, setCargando] = useState(true);
     const router = useRouter();
 
@@ -25,6 +26,13 @@ export default function PantallaInicio() {
     React.useEffect(() => {
         cargarDoctores();
     }, []);
+
+    // Escuchar el enfoque de la pantalla para recargar la cita activa en tiempo real
+    useFocusEffect(
+        React.useCallback(() => {
+            cargarCitaActiva();
+        }, [])
+    );
 
     // Efecto de búsqueda (debounce simple)
     React.useEffect(() => {
@@ -36,13 +44,24 @@ export default function PantallaInicio() {
 
     const cargarDoctores = async (query = '') => {
         try {
-            // setCargando(true); // Opcional: mostrar spinner
             const respuesta = await servicioDoctores.listar(query);
             setDoctores(respuesta.data || []);
         } catch (error) {
             console.error('Error cargando doctores', error);
         } finally {
             setCargando(false);
+        }
+    };
+
+    const cargarCitaActiva = async () => {
+        try {
+            const respuesta = await servicioCitas.historial();
+            const citas = respuesta.data || [];
+            // Buscar la primera cita con estado en_camino o en_progreso
+            const activa = citas.find(c => c.estado === 'en_camino' || c.estado === 'en_progreso');
+            setCitaActiva(activa || null);
+        } catch (error) {
+            console.error('Error cargando cita activa', error);
         }
     };
 
@@ -65,30 +84,38 @@ export default function PantallaInicio() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Cita en Curso (Nueva Adición Fase 10) */}
-                <TouchableOpacity
-                    style={styles.activeAppointmentCard}
-                    onPress={() => router.push('/seguimiento')}
-                >
-                    <View style={styles.activeCardHeader}>
-                        <Text style={styles.activeCardTitle}>Cita en Curso</Text>
-                        <View style={styles.liveBadge}>
-                            <View style={styles.liveDot} />
-                            <Text style={styles.liveText}>En camino</Text>
+                {/* Cita en Curso Dinámica */}
+                {citaActiva && (
+                    <TouchableOpacity
+                        style={styles.activeAppointmentCard}
+                        onPress={() => router.push('/seguimiento')}
+                    >
+                        <View style={styles.activeCardHeader}>
+                            <Text style={styles.activeCardTitle}>Cita en Curso</Text>
+                            <View style={styles.liveBadge}>
+                                <View style={styles.liveDot} />
+                                <Text style={styles.liveText}>
+                                    {citaActiva.estado === 'en_camino' ? 'En camino' : 'En progreso'}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
-                    <View style={styles.activeCardContent}>
-                        <Image
-                            source={{ uri: 'https://placehold.co/50' }}
-                            style={styles.activeDoctorAvatar}
-                        />
-                        <View>
-                            <Text style={styles.activeDoctorName}>Dr. Ana García</Text>
-                            <Text style={styles.activeTime}>Llegada en 15 min</Text>
+                        <View style={styles.activeCardContent}>
+                            <Image
+                                source={{ uri: 'https://placehold.co/50' }}
+                                style={styles.activeDoctorAvatar}
+                            />
+                            <View>
+                                <Text style={styles.activeDoctorName}>{citaActiva.medico_nombre}</Text>
+                                <Text style={styles.activeTime}>
+                                    {citaActiva.estado === 'en_camino' 
+                                        ? 'El médico se dirige a tu ubicación' 
+                                        : 'Consulta médica activa'}
+                                </Text>
+                            </View>
+                            <FontAwesome name="chevron-right" size={16} color={colors.white} style={{ marginLeft: 'auto' }} />
                         </View>
-                        <FontAwesome name="chevron-right" size={16} color={colors.white} style={{ marginLeft: 'auto' }} />
-                    </View>
-                </TouchableOpacity>
+                    </TouchableOpacity>
+                )}
 
                 {/* Buscador */}
                 <View style={styles.searchContainer}>

@@ -1,37 +1,53 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, Alert, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
+import { colors, spacing, borderRadius } from '../../styles/theme';
+import { servicioResenas } from '../../services/api';
 
 export default function PantallaEvaluacion() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [calificacion, setCalificacion] = useState(0);
   const [comentario, setComentario] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
   // Datos simulados del médico a evaluar
   const doctor = {
-    nombre: 'Dr. Marcus Thorne',
-    especialidad: 'Cardiología',
-    imagen: null, // placeholder
-    fecha: '12 Oct'
+    nombre: params.medicoNombre || 'Tú Médico',
+    especialidad: params.medicoEspecialidad || 'Especialista',
+    imagen: null, 
+    fecha: 'Reciente'
   };
 
-  const enviarEvaluacion = () => {
+  const enviarEvaluacion = async () => {
     if (calificacion === 0) {
       Alert.alert('Calificación requerida', 'Por favor selecciona un número de estrellas.');
       return;
     }
+    if (!params.citaId) {
+        Alert.alert('Error', 'No se ha proporcionado una cita válida para evaluar.');
+        return;
+    }
 
-    Alert.alert(
-      '¡Gracias!',
-      'Tu evaluación ha sido enviada correctamente.',
-      [
-        { text: 'Volver al Inicio', onPress: () => router.replace('/(tabs)') }
-      ]
-    );
+    try {
+        setEnviando(true);
+        await servicioResenas.crear(params.citaId, calificacion, comentario);
+        Alert.alert(
+            '¡Gracias!',
+            'Tu evaluación ha sido enviada correctamente.',
+            [
+              { text: 'Volver', onPress: () => router.replace('/historial') }
+            ]
+        );
+    } catch (error) {
+        console.error('Error enviando reseña', error);
+        Alert.alert('Ops', 'Ocurrió un error guardando la evaluación. Intenta más tarde.');
+    } finally {
+        setEnviando(false);
+    }
   };
 
   const volver = () => router.back();
@@ -102,8 +118,12 @@ export default function PantallaEvaluacion() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.submitButton} onPress={enviarEvaluacion}>
-            <Text style={styles.submitButtonText}>Enviar Evaluación</Text>
+        <TouchableOpacity 
+            style={[styles.submitButton, enviando && {opacity: 0.7}]} 
+            onPress={enviarEvaluacion}
+            disabled={enviando}
+        >
+            <Text style={styles.submitButtonText}>{enviando ? 'Enviando...' : 'Enviar Evaluación'}</Text>
         </TouchableOpacity>
       </View>
     </View>

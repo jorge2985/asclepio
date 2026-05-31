@@ -9,6 +9,7 @@ import { servicioAutenticacion } from '../services/api';
 const usarStoreAutenticacion = create((set, get) => ({
     usuario: null,
     token: null,
+    refreshToken: null,
     cargando: false,
     error: null,
 
@@ -19,18 +20,21 @@ const usarStoreAutenticacion = create((set, get) => ({
     hidratar: async () => {
         try {
             set({ cargando: true });
-            let token, datosUsuario;
+            let token, datosUsuario, refreshToken;
 
             if (Platform.OS === 'web') {
                 token = localStorage.getItem('user_token');
+                refreshToken = localStorage.getItem('user_refresh_token');
                 datosUsuario = localStorage.getItem('user_data');
             } else {
                 token = await SecureStore.getItemAsync('user_token');
+                refreshToken = await SecureStore.getItemAsync('user_refresh_token');
                 datosUsuario = await SecureStore.getItemAsync('user_data');
             }
 
             if (token && datosUsuario) {
-                set({ token, usuario: JSON.parse(datosUsuario) });
+                set({ token, refreshToken, usuario: JSON.parse(datosUsuario) });
+                sincronizarTokenPush(); // Intentar al abrir app
             }
         } catch (e) {
             console.error('Error hidratando autenticación', e);
@@ -59,9 +63,10 @@ const usarStoreAutenticacion = create((set, get) => ({
             }
 
             // Fallback: si el backend retorna token directamente (compat)
-            const { token, usuario } = data;
-            await guardarSesion(token, usuario);
-            set({ token, usuario });
+            const { token, refresh_token, usuario } = data;
+            await guardarSesion(token, refresh_token, usuario);
+            set({ token, refreshToken: refresh_token, usuario });
+            sincronizarTokenPush(); // Sincronizar al loguearse directo
             return 'ok';
         } catch (error) {
             const { manejarError, registrarError } = require('../services/errorHandler');
@@ -89,11 +94,12 @@ const usarStoreAutenticacion = create((set, get) => ({
                 codigo
             );
 
-            const { token, usuario } = respuesta.data;
+            const { token, refresh_token, usuario } = respuesta.data;
 
             // Guardar sesión
-            await guardarSesion(token, usuario);
-            set({ token, usuario, verificacionPendiente: null });
+            await guardarSesion(token, refresh_token, usuario);
+            set({ token, refreshToken: refresh_token, usuario, verificacionPendiente: null });
+            sincronizarTokenPush(); // Sincronizar tras verificar 2FA
             return true;
         } catch (error) {
             const { manejarError, registrarError } = require('../services/errorHandler');
@@ -155,23 +161,41 @@ const usarStoreAutenticacion = create((set, get) => ({
     cerrarSesion: async () => {
         if (Platform.OS === 'web') {
             localStorage.removeItem('user_token');
+            localStorage.removeItem('user_refresh_token');
             localStorage.removeItem('user_data');
         } else {
             await SecureStore.deleteItemAsync('user_token');
+            await SecureStore.deleteItemAsync('user_refresh_token');
             await SecureStore.deleteItemAsync('user_data');
         }
-        set({ usuario: null, token: null, verificacionPendiente: null });
+        set({ usuario: null, token: null, refreshToken: null, verificacionPendiente: null });
     },
 }));
 
 // Helper para guardar sesión
-async function guardarSesion(token, usuario) {
+async function guardarSesion(token, refreshToken, usuario) {
     if (Platform.OS === 'web') {
         localStorage.setItem('user_token', token);
+        localStorage.setItem('user_refresh_token', refreshToken);
         localStorage.setItem('user_data', JSON.stringify(usuario));
     } else {
         await SecureStore.setItemAsync('user_token', token);
+        await SecureStore.setItemAsync('user_refresh_token', refreshToken);
         await SecureStore.setItemAsync('user_data', JSON.stringify(usuario));
+    }
+}
+
+// Helper para sincronizar el Push Token con Backend
+async function sincronizarTokenPush() {
+    try {
+        const { registerForPushNotificationsAsync } = require('../services/pushNotifications');
+        const tokenPush = await registerForPushNotificationsAsync();
+        if (tokenPush) {
+            await servicioAutenticacion.guardarPushToken(tokenPush);
+            console.log('Push Token enviado al servidor exitosamente.');
+        }
+    } catch (e) {
+        console.log('Silenciosamente ignorando error de Push Token en la UI:', e);
     }
 }
 
