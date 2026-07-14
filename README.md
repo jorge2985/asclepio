@@ -60,15 +60,23 @@ asclepio/
 createdb asclepio
 ```
 
-2. Ejecutar migraciones:
+2. Configurar variables de entorno:
+```bash
+cd backend
+cp .env.example .env
+```
+
+Edita `.env` con tu `DATABASE_URL` local y un `JWT_SECRET` largo y aleatorio. El backend no inicia si faltan esas variables.
+
+3. Ejecutar migraciones:
 ```bash
 cd backend/database/migrations
-psql -U postgres -d asclepio -f 001_schema_inicial.sql
-psql -U postgres -d asclepio -f 002_datos_adicionales.sql
+psql -U postgres -d asclepio -f 001_esquema_inicial.sql
+psql -U postgres -d asclepio -f 002_citas_doctores.sql
 psql -U postgres -d asclepio -f 003_datos_prueba.sql
 ```
 
-3. Iniciar servidor:
+4. Iniciar servidor:
 ```bash
 cd backend
 go run cmd/api/main.go
@@ -84,15 +92,64 @@ cd mobile
 npm install
 ```
 
-2. Iniciar Expo:
+2. Configurar variables de entorno:
+```bash
+cp .env.example .env
+```
+
+Edita `EXPO_PUBLIC_API_URL` segun el entorno:
+- Desarrollo web/iOS local: `http://localhost:8080/api`
+- Emulador Android: `http://10.0.2.2:8080/api`
+- Dispositivo fisico: `http://<IP-LAN-DE-TU-PC>:8080/api`
+- Staging/produccion: usa la URL publica del backend
+
+3. Iniciar Expo:
 ```bash
 npx expo start
 ```
 
-3. Opciones:
+4. Opciones:
    - Presiona `a` para abrir en Android
    - Presiona `i` para abrir en iOS
    - Escanea el QR con Expo Go en tu dispositivo
+
+### Tests y verificaciones
+
+Backend:
+```bash
+cd backend
+go test ./...
+go build -buildvcs=false ./...
+```
+
+Frontend:
+```bash
+cd mobile
+npm test -- --runInBand
+npm run lint
+```
+
+### Variables de entorno
+
+Backend:
+- `DATABASE_URL`: conexion PostgreSQL obligatoria.
+- `JWT_SECRET`: secreto largo y aleatorio obligatorio.
+- `PORT`: puerto HTTP. Default: `8080`.
+- `JWT_EXPIRY`: duracion del access token. Default: `24h`.
+- `REFRESH_TOKEN_EXPIRY`: duracion del refresh token. Default: `168h`.
+- `ALLOWED_ORIGINS`: origenes permitidos por CORS separados por coma.
+
+Mobile:
+- `EXPO_PUBLIC_API_URL`: URL base de la API que consumira la app.
+
+Plantillas disponibles:
+- `backend/.env.example`
+- `mobile/.env.example`
+- `mobile/.env.staging.example`
+- `mobile/.env.production.example`
+
+Scripts auxiliares:
+- Ver `backend/scripts/README.md`.
 
 ## 📱 Credenciales de Prueba
 

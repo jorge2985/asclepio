@@ -10,17 +10,20 @@ import (
 )
 
 func main() {
-	// Conexión a la BD
-	connStr := "postgres://postgres:18zeta29@localhost:5433/asclepio?sslmode=disable"
+	connStr := os.Getenv("DATABASE_URL")
+	email := os.Getenv("AUTH_EMAIL")
+	password := os.Getenv("AUTH_PASSWORD")
+	if connStr == "" || email == "" || password == "" {
+		fmt.Fprintln(os.Stderr, "Uso: define DATABASE_URL, AUTH_EMAIL y AUTH_PASSWORD")
+		os.Exit(1)
+	}
+
 	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error conectando a la BD: %v\n", err)
 		os.Exit(1)
 	}
 	defer conn.Close(context.Background())
-
-	email := "juan@test.com"
-	password := "123456"
 
 	var storedHash string
 	err = conn.QueryRow(context.Background(), "SELECT password_hash FROM usuarios WHERE email=$1", email).Scan(&storedHash)
@@ -32,11 +35,10 @@ func main() {
 	fmt.Printf("Email: %s\n", email)
 	fmt.Printf("Hash en BD: %s\n", storedHash)
 
-	// Probar comparación
 	err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
 	if err != nil {
-		fmt.Printf("❌ Comparación fallida: %v\n", err)
+		fmt.Printf("Comparacion fallida: %v\n", err)
 	} else {
-		fmt.Println("✅ Comparación EXITOSA: La contraseña coincide con el hash.")
+		fmt.Println("Comparacion exitosa: la contrasena coincide con el hash.")
 	}
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -16,14 +17,27 @@ type Config struct {
 	AllowedOrigins     []string
 }
 
-func Cargar() *Config {
+func Cargar() (*Config, error) {
 	// Cargar .env si existe
 	cargarEnvFile(".env")
 
+	databaseURL := getEnv("DATABASE_URL", "")
+	jwtSecret := getEnv("JWT_SECRET", "")
+	var missing []string
+	if databaseURL == "" {
+		missing = append(missing, "DATABASE_URL")
+	}
+	if jwtSecret == "" {
+		missing = append(missing, "JWT_SECRET")
+	}
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("faltan variables de entorno obligatorias: %s", strings.Join(missing, ", "))
+	}
+
 	cfg := &Config{
 		Port:           getEnv("PORT", "8080"),
-		DatabaseURL:    getEnv("DATABASE_URL", "postgres://postgres:18zeta29@localhost:5433/asclepio?sslmode=disable"),
-		JWTSecret:      getEnv("JWT_SECRET", "dev_secreto_seguro_asclepio_2026"),
+		DatabaseURL:    databaseURL,
+		JWTSecret:      jwtSecret,
 		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:8081,http://localhost:19006"), ","),
 	}
 
@@ -39,7 +53,7 @@ func Cargar() *Config {
 	}
 	cfg.RefreshTokenExpiry = refreshExpiry
 
-	return cfg
+	return cfg, nil
 }
 
 func getEnv(key, defaultVal string) string {

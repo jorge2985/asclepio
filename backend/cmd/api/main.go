@@ -22,7 +22,11 @@ import (
 
 func main() {
 	// 1. Cargar Configuración
-	cfg := config.Cargar()
+	cfg, err := config.Cargar()
+	if err != nil {
+		logger.Error("Configuracion invalida", "error", err)
+		return
+	}
 	logger.Info("Iniciando Asclepio API", "env", "development")
 
 	// 2. Conexión a BD
