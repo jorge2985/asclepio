@@ -1,3 +1,7 @@
+// Package appointment gestiona el ciclo de vida de las citas.
+//
+// Aqui viven modelos, reglas de negocio y handlers HTTP para crear, listar,
+// confirmar, cancelar, reprogramar y pagar citas.
 package appointment
 
 import (
@@ -59,6 +63,8 @@ func NuevoServicio(db *database.ServicioBD, notif notification.Servicio) *Servic
 }
 
 func (s *Servicio) Crear(ctx context.Context, req CrearCitaRequest, pacienteID uuid.UUID) (*Cita, error) {
+	// Antes de insertar, verificamos que el medico no tenga otra cita activa
+	// exactamente en la misma fecha/hora. Fase futura: validar rangos completos.
 	// Validar colisiones horarias: verificar que el médico no tenga otra cita activa en el mismo horario exacto
 	var colision bool
 	sqlCheck := `
@@ -101,6 +107,7 @@ func (s *Servicio) Crear(ctx context.Context, req CrearCitaRequest, pacienteID u
 }
 
 func (s *Servicio) ListarPorPaciente(ctx context.Context, pacienteID uuid.UUID) ([]Cita, error) {
+	// Historial del paciente: incluye datos basicos del medico para pintar cards.
 	sql := `
 		SELECT c.id, c.medico_id, c.fecha_hora, c.motivo, c.estado, c.direccion_atencion,
 		       m.nombre_completo, m.especialidad
@@ -127,6 +134,7 @@ func (s *Servicio) ListarPorPaciente(ctx context.Context, pacienteID uuid.UUID) 
 }
 
 func (s *Servicio) ListarPorMedico(ctx context.Context, medicoID uuid.UUID) ([]Cita, error) {
+	// Agenda del medico: incluye nombre del paciente para el dashboard profesional.
 	sql := `
 		SELECT c.id, c.medico_id, c.paciente_id, c.fecha_hora, c.motivo, c.estado, c.direccion_atencion,
 		       p.nombre_completo as paciente_nombre
@@ -153,6 +161,7 @@ func (s *Servicio) ListarPorMedico(ctx context.Context, medicoID uuid.UUID) ([]C
 }
 
 func (s *Servicio) Confirmar(ctx context.Context, id uuid.UUID, medicoID uuid.UUID) error {
+	// Solo el medico asignado puede confirmar, porque el UPDATE filtra por medico_id.
 	var pacienteID uuid.UUID
 	err := s.db.Pool.QueryRow(ctx, "UPDATE citas SET estado = 'confirmada' WHERE id = $1 AND medico_id = $2 RETURNING paciente_id", id, medicoID).Scan(&pacienteID)
 	if err != nil {
@@ -164,6 +173,7 @@ func (s *Servicio) Confirmar(ctx context.Context, id uuid.UUID, medicoID uuid.UU
 }
 
 func (s *Servicio) Cancelar(ctx context.Context, id uuid.UUID, usuarioID uuid.UUID) error {
+	// Tanto paciente como medico pueden cancelar si participan en la cita.
     var pacienteID, medicoID uuid.UUID
 	err := s.db.Pool.QueryRow(ctx, "UPDATE citas SET estado = 'cancelada' WHERE id = $1 AND (paciente_id = $2 OR medico_id = $2) RETURNING paciente_id, medico_id", id, usuarioID).Scan(&pacienteID, &medicoID)
 	if err != nil {
@@ -190,6 +200,7 @@ func (s *Servicio) Reprogramar(ctx context.Context, id uuid.UUID, pacienteID uui
 }
 
 func (s *Servicio) Pagar(ctx context.Context, id uuid.UUID, pacienteID uuid.UUID, metodo string) error {
+	// Pago MVP: registra pago como aprobado. Fase futura: reemplazar por proveedor real.
 	var precio float64
 	err := s.db.Pool.QueryRow(ctx, "SELECT COALESCE(precio_estimado, 50.00) FROM citas WHERE id = $1 AND paciente_id = $2", id, pacienteID).Scan(&precio)
 	if err != nil {
@@ -210,6 +221,7 @@ func (s *Servicio) Pagar(ctx context.Context, id uuid.UUID, pacienteID uuid.UUID
 }
 
 func (s *Servicio) GetDisponibilidad(ctx context.Context, medicoID uuid.UUID, fecha time.Time) ([]string, error) {
+	// La disponibilidad sale de bloques recurrentes y descuenta citas ya ocupadas.
     diaSemana := int(fecha.Weekday())
     
     // Obtener bloques de disponibilidad del doctor
@@ -298,6 +310,7 @@ func (h *Handler) RegistrarRutas(r chi.Router) {
 func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	pacienteID, err := uuid.Parse(userIDStr)
@@ -326,6 +339,7 @@ func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Historial(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	pacienteID, err := uuid.Parse(userIDStr)
@@ -345,6 +359,7 @@ func (h *Handler) Historial(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListarPorMedico(w http.ResponseWriter, r *http.Request) {
     userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	medicoID, err := uuid.Parse(userIDStr)
@@ -396,6 +411,7 @@ func (h *Handler) Confirmar(w http.ResponseWriter, r *http.Request) {
     
     userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	medicoID, err := uuid.Parse(userIDStr)
@@ -422,6 +438,7 @@ func (h *Handler) Cancelar(w http.ResponseWriter, r *http.Request) {
     
     userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	usuarioID, err := uuid.Parse(userIDStr)
@@ -448,6 +465,7 @@ func (h *Handler) Reprogramar(w http.ResponseWriter, r *http.Request) {
     
     userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	pacienteID, err := uuid.Parse(userIDStr)
@@ -480,6 +498,7 @@ func (h *Handler) Pagar(w http.ResponseWriter, r *http.Request) {
     
     userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	pacienteID, err := uuid.Parse(userIDStr)

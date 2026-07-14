@@ -1,6 +1,7 @@
-// mobile/__tests__/api.test.js
-// Tests unitarios de las funciones de services/api.js
-// Mockea axios para evitar peticiones HTTP reales
+// Tests unitarios de services/api.js.
+//
+// Mockea axios para verificar que los wrappers llamen rutas correctas sin hacer
+// peticiones HTTP reales.
 
 jest.mock('axios', () => {
     const mockAxiosInstance = {

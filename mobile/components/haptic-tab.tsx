@@ -1,3 +1,6 @@
+// Boton de tab con feedback haptico en plataformas compatibles.
+//
+// Se usa en tab bars para dar una sensacion nativa al tocar navegacion.
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { PlatformPressable } from '@react-navigation/elements';
 import * as Haptics from 'expo-haptics';

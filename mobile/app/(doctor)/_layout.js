@@ -1,4 +1,7 @@
 
+// Layout de navegacion para medicos.
+//
+// Agrupa las tabs profesionales: dashboard, agenda, chat y perfil.
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 

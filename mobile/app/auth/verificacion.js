@@ -1,3 +1,7 @@
+// Pantalla de verificacion 2FA.
+//
+// Usa verificacionPendiente del authStore para validar el codigo enviado por
+// backend y completar la sesion del usuario.
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

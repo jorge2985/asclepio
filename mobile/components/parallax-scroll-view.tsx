@@ -1,3 +1,7 @@
+// ScrollView con header parallax.
+//
+// Componente visual heredado de Expo; util para pantallas editoriales, no para
+// flujos densos como dashboards o formularios medicos.
 import type { PropsWithChildren, ReactElement } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {

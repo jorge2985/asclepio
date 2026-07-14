@@ -1,3 +1,7 @@
+// Package identity contiene autenticacion, registro, 2FA, JWT y refresh tokens.
+//
+// Este archivo adapta HTTP al servicio: decodifica JSON, llama a la regla de
+// negocio y escribe la respuesta. No deberia contener SQL ni logica compleja.
 package identity
 
 import (
@@ -19,6 +23,7 @@ func NuevoHandler(svc *Servicio) *Handler {
 }
 
 func (h *Handler) RegistrarRutas(r chi.Router, rateLimiter func(http.Handler) http.Handler) {
+	// Rutas publicas: registro, login, verificacion 2FA y refresh token.
 	r.Post("/registro", h.handleRegistro)
 	r.Post("/refresh", h.handleRefresh)
 
@@ -34,6 +39,7 @@ func (h *Handler) RegistrarRutas(r chi.Router, rateLimiter func(http.Handler) ht
 }
 
 func (h *Handler) RegistrarRutasProtegidas(r chi.Router) {
+	// Rutas protegidas: requieren que AuthMiddleware haya puesto user_id en context.
 	r.Put("/push-token", h.handleGuardarPushToken)
 }
 
@@ -129,6 +135,7 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleGuardarPushToken(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	usuarioID, err := uuid.Parse(userIDStr)

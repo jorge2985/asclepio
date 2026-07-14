@@ -1,3 +1,7 @@
+// Package database encapsula la conexion a PostgreSQL.
+//
+// El resto del backend recibe un ServicioBD y usa su pool compartido, evitando
+// abrir conexiones sueltas en cada handler.
 package database
 
 import (
@@ -12,6 +16,8 @@ type ServicioBD struct {
 	Pool *pgxpool.Pool
 }
 
+// NuevoServicioBD crea un pool de conexiones, valida que la BD responda y deja
+// la configuracion de concurrencia en un solo lugar.
 func NuevoServicioBD(cadenaConexion string) (*ServicioBD, error) {
 	config, err := pgxpool.ParseConfig(cadenaConexion)
 	if err != nil {
@@ -19,6 +25,7 @@ func NuevoServicioBD(cadenaConexion string) (*ServicioBD, error) {
 	}
 
 	// Configurar pool
+	// El pool evita abrir/cerrar conexiones por request y protege a PostgreSQL.
 	config.MaxConns = 10
 	config.MinConns = 2
 	config.MaxConnLifetime = 1 * time.Hour
@@ -32,6 +39,7 @@ func NuevoServicioBD(cadenaConexion string) (*ServicioBD, error) {
 	}
 
 	// Verificar conexión
+	// Fallar al inicio es mejor que descubrir una BD rota con usuarios reales.
 	if err := pool.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("no se pudo hacer ping a la BD: %w", err)
 	}
@@ -39,6 +47,7 @@ func NuevoServicioBD(cadenaConexion string) (*ServicioBD, error) {
 	return &ServicioBD{Pool: pool}, nil
 }
 
+// Cerrar libera el pool al apagar la API.
 func (s *ServicioBD) Cerrar() {
 	if s.Pool != nil {
 		s.Pool.Close()

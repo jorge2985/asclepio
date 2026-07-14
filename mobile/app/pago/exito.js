@@ -1,4 +1,8 @@
 
+// Confirmacion visual de pago exitoso.
+//
+// Esta pantalla no procesa pagos; solo informa resultado y ofrece volver al
+// flujo principal. La logica de pago vive en pago/seleccion.js y backend.
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';

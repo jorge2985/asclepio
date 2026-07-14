@@ -1,4 +1,7 @@
 
+// Pantalla de registro de paciente/usuario.
+//
+// Recoge datos basicos, delega la llamada al authStore y luego vuelve al login.
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';

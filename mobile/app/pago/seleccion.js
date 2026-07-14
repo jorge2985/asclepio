@@ -1,4 +1,8 @@
 
+// Seleccion de metodo de pago para una cita.
+//
+// Flujo MVP: llama al endpoint de pago simulado y navega a exito. Cuando haya
+// proveedor real, esta pantalla deberia crear/confirmar intents de pago.
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';

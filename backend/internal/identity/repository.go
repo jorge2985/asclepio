@@ -1,4 +1,7 @@
-// backend/internal/identity/repository.go
+// Package identity contiene autenticacion, registro, 2FA, JWT y refresh tokens.
+//
+// Este archivo es la capa de persistencia: aqui vive el SQL de identity. Mantener
+// SQL aqui permite testear servicios sin mezclar transporte HTTP y BD.
 package identity
 
 import (
@@ -21,7 +24,8 @@ type RegistroVerificacion struct {
 	Intentos  int
 }
 
-// Repository define la interfaz para acceso a datos de identidad
+// Repository define la interfaz para acceso a datos de identidad.
+// Los servicios dependen de esta interfaz, no directamente de pgx.
 type Repository interface {
 	// Usuario
 	FindByEmail(ctx context.Context, email string) (*Usuario, string, error)
@@ -56,12 +60,12 @@ type RegistroRefreshToken struct {
 	Revocado  bool
 }
 
-// postgresRepository implementa Repository usando PostgreSQL
+// postgresRepository implementa Repository usando PostgreSQL.
 type postgresRepository struct {
 	pool *pgxpool.Pool
 }
 
-// NewRepository crea una nueva instancia del repositorio
+// NewRepository crea una nueva instancia del repositorio.
 func NewRepository(pool *pgxpool.Pool) Repository {
 	return &postgresRepository{pool: pool}
 }

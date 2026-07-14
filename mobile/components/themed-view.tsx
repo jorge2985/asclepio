@@ -1,3 +1,6 @@
+// View con soporte de tema claro/oscuro.
+//
+// Es el equivalente de ThemedText para contenedores.
 import { View, type ViewProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';

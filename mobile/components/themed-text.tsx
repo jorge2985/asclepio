@@ -1,3 +1,6 @@
+// Text con soporte de tema claro/oscuro.
+//
+// Usalo cuando una pantalla necesite respetar colores dinamicos del sistema.
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';

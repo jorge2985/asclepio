@@ -1,4 +1,8 @@
 
+// Perfil del paciente.
+//
+// Muestra datos de sesion y accesos a historial, metodos de pago, seguridad y
+// soporte. Varias acciones aun son placeholders de producto.
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';

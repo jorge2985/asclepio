@@ -1,3 +1,5 @@
+// Command test-login ejecuta un login real contra la API configurada.
+// Es un smoke test manual para revisar backend + credenciales locales.
 package main
 
 import (
@@ -10,6 +12,7 @@ import (
 )
 
 func main() {
+	// AUTH_API_URL puede apuntar a local, staging o produccion segun el caso.
 	apiURL := getEnv("AUTH_API_URL", "http://localhost:8080/api")
 	email := os.Getenv("AUTH_EMAIL")
 	password := os.Getenv("AUTH_PASSWORD")

@@ -1,3 +1,7 @@
+// Package middleware contiene piezas reutilizables del pipeline HTTP.
+//
+// AuthMiddleware transforma un JWT valido en datos de usuario dentro del
+// contexto del request, para que los handlers no tengan que parsear tokens.
 package middleware
 
 import (
@@ -16,7 +20,7 @@ const (
 	ContextKeyUserRol contextKey = "user_rol"
 )
 
-// AuthMiddleware verifica el JWT en el header Authorization
+// AuthMiddleware verifica el JWT en el header Authorization.
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +30,7 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Extraer token del header "Bearer <token>"
+			// El cliente debe enviar Authorization: Bearer <token>.
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 				http.Error(w, `{"error":"formato de token inválido"}`, http.StatusUnauthorized)
@@ -35,7 +39,7 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 
 			tokenString := parts[1]
 
-			// Parsear y validar JWT
+			// Validar firma y algoritmo evita aceptar tokens manipulados.
 			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, jwt.ErrSignatureInvalid
@@ -62,7 +66,7 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Agregar datos al contexto
+			// Guardar user_id/rol en context evita confiar en datos enviados por el cliente.
 			ctx := context.WithValue(r.Context(), ContextKeyUserID, userID)
 			ctx = context.WithValue(ctx, ContextKeyUserRol, userRol)
 

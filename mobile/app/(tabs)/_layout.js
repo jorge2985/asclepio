@@ -1,4 +1,7 @@
 
+// Layout de navegacion para pacientes.
+//
+// Define las tabs inferiores visibles para usuarios con rol paciente.
 import { Tabs } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '../../styles/theme';

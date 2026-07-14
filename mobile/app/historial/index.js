@@ -1,4 +1,7 @@
 
+// Historial de citas del paciente.
+//
+// Consume servicioCitas.historial y muestra estados de citas pasadas/futuras.
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';

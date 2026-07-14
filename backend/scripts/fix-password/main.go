@@ -1,3 +1,5 @@
+// Command fix-password actualiza hashes de password para usuarios especificos.
+// Pensado solo para desarrollo/mantenimiento local, no para flujos de producto.
 package main
 
 import (
@@ -11,6 +13,7 @@ import (
 )
 
 func main() {
+	// AUTH_EMAILS permite corregir varios usuarios con una sola ejecucion.
 	connStr := os.Getenv("DATABASE_URL")
 	password := os.Getenv("AUTH_PASSWORD")
 	emailList := os.Getenv("AUTH_EMAILS")

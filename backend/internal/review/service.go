@@ -1,3 +1,7 @@
+// Package review gestiona resenas posteriores a una cita.
+//
+// Mantiene juntas reglas simples y handlers. Si aparecen mas reglas de
+// moderacion o reputacion, conviene separar repository/service/handler.
 package review
 
 import (
@@ -41,6 +45,7 @@ func NuevoServicio(db *database.ServicioBD) *Servicio {
 }
 
 func (s *Servicio) Crear(ctx context.Context, autorID uuid.UUID, req CrearResenaRequest) (*Resena, error) {
+	// La cita debe existir y pertenecer al paciente que esta evaluando.
 	// 1. Obtener el medico_id a partir de la cita
 	var medicoID uuid.UUID
 	err := s.db.Pool.QueryRow(ctx, "SELECT medico_id FROM citas WHERE id = $1 AND paciente_id = $2", req.CitaID, autorID).Scan(&medicoID)
@@ -100,6 +105,7 @@ func (h *Handler) RegistrarRutas(r chi.Router) {
 func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	autorID, err := uuid.Parse(userIDStr)

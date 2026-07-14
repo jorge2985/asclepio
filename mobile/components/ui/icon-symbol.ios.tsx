@@ -1,3 +1,6 @@
+// Implementacion iOS de IconSymbol usando SF Symbols.
+//
+// Android/web usan icon-symbol.tsx como fallback con MaterialIcons.
 import { SymbolView, SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import { StyleProp, ViewStyle } from 'react-native';
 

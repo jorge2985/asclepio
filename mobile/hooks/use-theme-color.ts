@@ -1,3 +1,6 @@
+// Hook que elige un color segun el tema activo.
+//
+// Permite pasar overrides light/dark o caer en la paleta definida en constants.
 /**
  * Learn more about light and dark modes:
  * https://docs.expo.dev/guides/color-schemes/

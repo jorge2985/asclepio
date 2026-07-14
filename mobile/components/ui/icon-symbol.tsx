@@ -1,4 +1,7 @@
-// Fallback for using MaterialIcons on Android and web.
+// Icono multiplataforma.
+//
+// En iOS se usan SF Symbols; en Android/web este fallback mapea nombres a
+// MaterialIcons para mantener una API parecida.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { SymbolWeight, SymbolViewProps } from 'expo-symbols';

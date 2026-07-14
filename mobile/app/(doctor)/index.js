@@ -1,3 +1,7 @@
+// Dashboard principal del medico.
+//
+// Carga citas reales del backend y muestra resumen profesional. Las secciones
+// con datos simulados estan marcadas para conectarse en fases posteriores.
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +12,8 @@ import { servicioCitas } from '../../services/api';
 import { spacing, borderRadius } from '../../styles/theme';
 
 const dc = {
+    // Paleta local heredada del diseno del dashboard medico. Fase futura:
+    // mover estos valores a styles/theme.js para consistencia global.
     primary: '#13ecda',
     primaryDark: '#0ebcb0',
     bgLight: '#f6f8f8',

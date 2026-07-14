@@ -1,4 +1,8 @@
 
+// Seguimiento de cita.
+//
+// Pantalla visual para estado "en camino/en progreso". Hoy usa simulacion de
+// mapa/tiempo; fase futura debe alimentarse de estados reales del backend.
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';

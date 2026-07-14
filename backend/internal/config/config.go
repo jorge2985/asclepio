@@ -1,3 +1,7 @@
+// Package config centraliza la configuracion del backend.
+//
+// Si una variable sensible falta, este paquete devuelve error para que la API
+// no arranque con defaults inseguros.
 package config
 
 import (
@@ -17,12 +21,16 @@ type Config struct {
 	AllowedOrigins     []string
 }
 
+// Cargar lee variables de entorno y, si existe, un archivo .env local.
+// Los valores sensibles no tienen defaults: deben venir del entorno.
 func Cargar() (*Config, error) {
 	// Cargar .env si existe
 	cargarEnvFile(".env")
 
 	databaseURL := getEnv("DATABASE_URL", "")
 	jwtSecret := getEnv("JWT_SECRET", "")
+	// Acumular todas las variables faltantes ayuda a corregir la configuracion
+	// en un solo intento en vez de fallar una por una.
 	var missing []string
 	if databaseURL == "" {
 		missing = append(missing, "DATABASE_URL")
@@ -63,6 +71,8 @@ func getEnv(key, defaultVal string) string {
 	return defaultVal
 }
 
+// cargarEnvFile es solo una comodidad para desarrollo local. En produccion se
+// espera que las variables vengan del entorno/secret manager.
 func cargarEnvFile(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {

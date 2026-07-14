@@ -1,3 +1,5 @@
+// Command debug-login valida manualmente si una password coincide con el hash
+// guardado para un usuario. Es util cuando se cargan datos de prueba.
 package main
 
 import (
@@ -10,6 +12,7 @@ import (
 )
 
 func main() {
+	// Se usan variables de entorno para evitar credenciales hardcodeadas.
 	connStr := os.Getenv("DATABASE_URL")
 	email := os.Getenv("AUTH_EMAIL")
 	password := os.Getenv("AUTH_PASSWORD")

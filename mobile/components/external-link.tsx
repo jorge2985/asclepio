@@ -1,3 +1,6 @@
+// Link externo compatible con Expo Router.
+//
+// En nativo abre navegador in-app; en web deja que el navegador maneje el link.
 import { Href, Link } from 'expo-router';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { type ComponentProps } from 'react';

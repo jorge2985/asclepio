@@ -1,3 +1,6 @@
+// Placeholder de chat medico-paciente.
+//
+// Fase futura: definir mensajeria real, permisos, retencion y notificaciones.
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 

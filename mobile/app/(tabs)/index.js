@@ -1,3 +1,7 @@
+// Home del paciente.
+//
+// Muestra busqueda de doctores, categorias y acceso rapido a citas. Es la
+// pantalla principal despues de login para usuarios con rol paciente.
 import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

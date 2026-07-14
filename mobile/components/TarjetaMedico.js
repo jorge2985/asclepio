@@ -1,4 +1,9 @@
 
+// Card reutilizable para mostrar un medico en listas de busqueda.
+//
+// Contrato esperado de props:
+// - medico: datos ya adaptados a UI
+// - alPresionar: callback de navegacion hacia detalle/reserva
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, spacing, borderRadius } from '../styles/theme';

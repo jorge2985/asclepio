@@ -1,4 +1,7 @@
-
+// Pantalla inicial de login.
+//
+// Flujo: hidrata sesion guardada, valida email/password, llama authStore y
+// redirige a paciente o medico segun el rol devuelto por backend.
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
@@ -8,6 +11,7 @@ import { validarLogin } from '../utils/validation';
 import { colors, spacing, fonts, borderRadius } from '../styles/theme';
 
 const getRutaDestino = (usuario) => {
+    // La app tiene dos areas privadas: tabs de paciente y stack de medico.
     return usuario?.rol === 'medico' ? '/(doctor)' : '/(tabs)';
 };
 

@@ -1,11 +1,15 @@
 
-// mobile/stores/authStore.js
+// Store global de autenticacion.
+//
+// Zustand mantiene usuario/token disponibles para cualquier pantalla sin pasar
+// props. Este archivo tambien persiste sesion, maneja 2FA y sincroniza push.
 import { create } from 'zustand';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { servicioAutenticacion } from '../services/api';
 
 // Store para manejar el estado de autenticación de manera global
+// Estado principal: una pantalla puede leer usuario/token/cargando/error desde aqui.
 const usarStoreAutenticacion = create((set, get) => ({
     usuario: null,
     token: null,
@@ -18,6 +22,7 @@ const usarStoreAutenticacion = create((set, get) => ({
 
     // Hidratar: Recuperar sesión guardada al abrir la app
     hidratar: async () => {
+        // Recupera sesion guardada al abrir la app.
         try {
             set({ cargando: true });
             let token, datosUsuario, refreshToken;
@@ -33,6 +38,7 @@ const usarStoreAutenticacion = create((set, get) => ({
             }
 
             if (token && datosUsuario) {
+                // Si hay sesion persistida, la app entra directo al area privada.
                 set({ token, refreshToken, usuario: JSON.parse(datosUsuario) });
                 sincronizarTokenPush(); // Intentar al abrir app
             }
@@ -45,6 +51,7 @@ const usarStoreAutenticacion = create((set, get) => ({
 
     // Función de Ingreso (Login) — Ahora retorna verificación pendiente
     ingreso: async (email, password) => {
+        // Puede devolver 'verificacion' si el backend exige 2FA.
         try {
             set({ cargando: true, error: null, verificacionPendiente: null });
             const respuesta = await servicioAutenticacion.ingreso(email, password);
@@ -52,6 +59,7 @@ const usarStoreAutenticacion = create((set, get) => ({
             const data = respuesta.data;
 
             if (data.requiere_verificacion) {
+                // Guardamos el id temporal para que la pantalla de 2FA pueda verificar.
                 // Guardar estado de verificación pendiente
                 set({
                     verificacionPendiente: {
@@ -81,6 +89,7 @@ const usarStoreAutenticacion = create((set, get) => ({
 
     // Verificar código 2FA
     verificarCodigo: async (codigo) => {
+        // Transforma una verificacion pendiente en sesion real con JWT.
         try {
             set({ cargando: true, error: null });
             const { verificacionPendiente } = get();
@@ -114,6 +123,7 @@ const usarStoreAutenticacion = create((set, get) => ({
 
     // Reenviar código de verificación
     reenviarCodigo: async () => {
+        // Reemplaza el verificacion_id viejo por uno nuevo generado por backend.
         try {
             set({ error: null });
             const { verificacionPendiente } = get();
@@ -142,6 +152,7 @@ const usarStoreAutenticacion = create((set, get) => ({
 
     // Función de Registro
     registro: async (datos) => {
+        // Registro crea usuario; login se hace luego con el flujo normal.
         try {
             set({ cargando: true, error: null });
             await servicioAutenticacion.registro(datos);
@@ -159,6 +170,7 @@ const usarStoreAutenticacion = create((set, get) => ({
 
     // Función de Salida (Logout)
     cerrarSesion: async () => {
+        // Borra almacenamiento local y estado en memoria.
         if (Platform.OS === 'web') {
             localStorage.removeItem('user_token');
             localStorage.removeItem('user_refresh_token');
@@ -174,6 +186,7 @@ const usarStoreAutenticacion = create((set, get) => ({
 
 // Helper para guardar sesión
 async function guardarSesion(token, refreshToken, usuario) {
+    // Web no tiene SecureStore; por eso se usa localStorage solo en Platform web.
     if (Platform.OS === 'web') {
         localStorage.setItem('user_token', token);
         localStorage.setItem('user_refresh_token', refreshToken);
@@ -187,6 +200,7 @@ async function guardarSesion(token, refreshToken, usuario) {
 
 // Helper para sincronizar el Push Token con Backend
 async function sincronizarTokenPush() {
+    // Este helper no debe romper login: si push falla, se ignora en la UI.
     try {
         const { registerForPushNotificationsAsync } = require('../services/pushNotifications');
         const tokenPush = await registerForPushNotificationsAsync();

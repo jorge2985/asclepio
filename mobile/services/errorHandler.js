@@ -1,4 +1,7 @@
-// mobile/services/errorHandler.js
+// Utilidades centralizadas para transformar errores tecnicos en mensajes de UI.
+//
+// Las pantallas deberian llamar manejarError/registrarError en vez de repetir
+// switches de HTTP status en cada componente.
 
 /**
  * Maneja errores de API de forma centralizada

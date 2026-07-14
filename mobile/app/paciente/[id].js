@@ -1,3 +1,7 @@
+// Detalle de paciente para medico.
+//
+// Actualmente muestra datos simulados; fase futura debe conectarlo al backend
+// y aplicar permisos estrictos por relacion medico-paciente.
 import React from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

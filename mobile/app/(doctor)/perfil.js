@@ -1,3 +1,7 @@
+// Perfil profesional del medico.
+//
+// Muestra datos del medico autenticado y acciones de configuracion. Fase futura:
+// conectar edicion real de perfil, documentos y verificacion profesional.
 import React from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

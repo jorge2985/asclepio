@@ -1,3 +1,6 @@
+// Version web del hook de color scheme.
+//
+// Evita diferencias de hidratacion entre server/client cuando Expo corre en web.
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 

@@ -1,3 +1,7 @@
+// Package main es el punto de entrada HTTP de Asclepio.
+//
+// Este archivo arma la aplicacion completa: carga configuracion, abre la BD,
+// crea servicios/handlers y registra las rutas publicas y protegidas.
 package main
 
 import (
@@ -21,7 +25,8 @@ import (
 )
 
 func main() {
-	// 1. Cargar Configuración
+	// La configuracion se carga antes de cualquier servicio para fallar temprano
+	// si faltan secretos o URLs obligatorias.
 	cfg, err := config.Cargar()
 	if err != nil {
 		logger.Error("Configuracion invalida", "error", err)
@@ -29,7 +34,7 @@ func main() {
 	}
 	logger.Info("Iniciando Asclepio API", "env", "development")
 
-	// 2. Conexión a BD
+	// La conexion a BD se comparte entre todos los servicios del backend.
 	logger.Info("Conectando a base de datos...")
 	bd, err := database.NuevoServicioBD(cfg.DatabaseURL)
 	if err != nil {
@@ -37,9 +42,9 @@ func main() {
 		return
 	}
 	defer bd.Cerrar()
-	logger.Info("Conexión a base de datos exitosa")
+	logger.Info("Conexion a base de datos exitosa")
 
-	// 3. Inicializar Servicios
+	// Cada dominio expone un servicio con reglas de negocio y un handler HTTP.
 	svcIdentity := identity.NuevoServicio(bd, cfg)
 	handlerIdentity := identity.NuevoHandler(svcIdentity)
 
@@ -54,15 +59,15 @@ func main() {
 	svcReview := review.NuevoServicio(bd)
 	handlerReview := review.NuevoHandler(svcReview)
 
-	// 4. Rate Limiter (5 intentos por minuto para login/verificación)
+	// Rate limiter aplicado a auth para reducir fuerza bruta en login/2FA.
 	limiterLogin := ascMiddleware.NuevoRateLimiter(5, 1*time.Minute)
 
-	// 5. Router principal
+	// Chi permite agrupar middlewares por rama de rutas.
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// CORS
+	// CORS define que frontends pueden llamar a esta API desde navegador/app.
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -74,21 +79,17 @@ func main() {
 
 	r.Use(middleware.AllowContentType("application/json"))
 
-	// API Routes
+	// Todo lo que este dentro de rProtected requiere JWT valido.
 	r.Route("/api", func(r chi.Router) {
-		// --- Rutas de Autenticación / Identidad ---
 		r.Route("/auth", func(rAuth chi.Router) {
-			// Rutas Públicas (con rate limit en login)
 			handlerIdentity.RegistrarRutas(rAuth, limiterLogin.Middleware)
 
-			// Rutas Protegidas bajo /auth
 			rAuth.Group(func(rAuthProtected chi.Router) {
 				rAuthProtected.Use(ascMiddleware.AuthMiddleware(cfg.JWTSecret))
 				handlerIdentity.RegistrarRutasProtegidas(rAuthProtected)
 			})
 		})
 
-		// --- Rutas Protegidas Generales ---
 		r.Group(func(rProtected chi.Router) {
 			rProtected.Use(ascMiddleware.AuthMiddleware(cfg.JWTSecret))
 
@@ -98,7 +99,7 @@ func main() {
 		})
 	})
 
-	// Health Check enriquecido con JSON y estado de BD
+	// Health check usado por monitoreo/load balancers para saber si la API y DB responden.
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		type healthResponse struct {
 			Status   string `json:"status"`
@@ -111,7 +112,6 @@ func main() {
 			Version: "1.0.0",
 		}
 
-		// Verificar conectividad de BD
 		if err := bd.Pool.Ping(r.Context()); err != nil {
 			res.Database = "unavailable"
 			res.Status = "degraded"

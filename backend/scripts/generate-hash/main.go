@@ -1,3 +1,5 @@
+// Command generate-hash imprime un hash bcrypt para una password local.
+// Sirve para preparar datos de prueba sin escribir hashes a mano.
 package main
 
 import (

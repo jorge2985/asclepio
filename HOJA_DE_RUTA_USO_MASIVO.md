@@ -28,7 +28,7 @@ Duracion estimada: 1 a 2 semanas.
 
 Objetivo: eliminar riesgos obvios y dejar el repositorio preparado para trabajar con ritmo profesional.
 
-Estado: completada. Se retiraron secretos hardcodeados, se movieron los scripts de debug fuera de la raiz, la app movil usa configuracion por entorno y la documentacion de arranque quedo actualizada.
+Estado: completada. Se retiraron secretos hardcodeados, se movieron los scripts de debug fuera de la raiz a `backend/scripts/`, la app movil usa configuracion por entorno y la documentacion de arranque quedo actualizada.
 
 Acciones:
 

@@ -1,3 +1,7 @@
+// Package identity contiene autenticacion, registro, 2FA, JWT y refresh tokens.
+//
+// Regla de navegacion: handlers HTTP viven en handler.go, acceso a datos en
+// repository.go, y este archivo concentra las reglas de negocio.
 package identity
 
 import (
@@ -25,6 +29,7 @@ type Servicio struct {
 	cfg  *config.Config
 }
 
+// NuevoServicio conecta identity con la BD, el repository y la configuracion.
 func NuevoServicio(bd *database.ServicioBD, cfg *config.Config) *Servicio {
 	return &Servicio{
 		bd:   bd,
@@ -94,6 +99,8 @@ func (s *Servicio) Registrar(ctx context.Context, req RegistroRequest) (*Usuario
 
 	rol := Rol(req.Rol)
 
+	// Registro crea dos filas relacionadas: usuarios + perfil. Por eso usamos
+	// transaccion; si el perfil falla, tampoco queda creado el usuario base.
 	tx, err := s.bd.Pool.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -152,6 +159,7 @@ func (s *Servicio) Login(ctx context.Context, req LoginRequest) (*LoginResponse,
 	}
 
 	// Generar código de verificación de 6 dígitos
+	// Login no devuelve JWT todavia: primero genera un codigo 2FA.
 	codigo, err := generarCodigo6Digitos()
 	if err != nil {
 		return nil, fmt.Errorf("error generando código: %w", err)
@@ -208,6 +216,7 @@ func (s *Servicio) VerificarCodigo(ctx context.Context, req VerificarCodigoReque
 	}
 
 	// Incrementar intentos
+	// Incrementar antes de comparar limita ataques de fuerza bruta al codigo.
 	_ = s.repo.IncrementarIntentos(ctx, verificacionID)
 
 	// Verificar código
@@ -309,6 +318,7 @@ func (s *Servicio) RefreshToken(ctx context.Context, req RefreshTokenRequest) (*
 	}
 
 	// Revocar el refresh token usado (rotación)
+	// Rotacion: cada refresh token se usa una sola vez y queda revocado.
 	_ = s.repo.RevocarRefreshToken(ctx, registro.ID)
 
 	// Buscar usuario
@@ -346,6 +356,7 @@ func (s *Servicio) GuardarPushToken(ctx context.Context, req PushTokenRequest, u
 // ---- Helpers ----
 
 func (s *Servicio) generarJWT(u *Usuario) (string, error) {
+	// Claims minimos que el middleware necesita para identificar usuario y rol.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": u.ID.String(),
 		"rol": u.Rol,
@@ -355,7 +366,7 @@ func (s *Servicio) generarJWT(u *Usuario) (string, error) {
 }
 
 func (s *Servicio) generarRefreshToken(ctx context.Context, usuarioID uuid.UUID) (string, error) {
-	// Generar token aleatorio de 32 bytes
+	// Se devuelve el token crudo al cliente, pero en BD solo se guarda su hash.
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", err

@@ -1,3 +1,6 @@
+// Modal de ejemplo de Expo Router.
+//
+// Puede reutilizarse como base para modales reales o eliminarse si no se usa.
 import { Link } from 'expo-router';
 import { StyleSheet } from 'react-native';
 

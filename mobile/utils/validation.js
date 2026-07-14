@@ -1,4 +1,7 @@
-// mobile/utils/validation.js
+// Validaciones reutilizables de formularios.
+//
+// Mantener estas reglas aqui evita que login, registro y futuras pantallas
+// implementen criterios distintos para email, password, nombre o telefono.
 
 /**
  * Valida un email usando expresión regular

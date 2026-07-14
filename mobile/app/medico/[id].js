@@ -1,4 +1,7 @@
 
+// Detalle de medico y reserva.
+//
+// Carga datos del medico por id, consulta disponibilidad y permite crear cita.
 import React, { useState } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';

@@ -1,9 +1,14 @@
-// mobile/services/api.js
+// Servicio HTTP central de la app movil.
+//
+// Todo request al backend debe pasar por esta instancia de Axios para heredar:
+// URL por entorno, Authorization Bearer, refresh token automatico y servicios
+// agrupados por dominio.
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const DEFAULT_API_URLS = {
+    // Defaults solo para desarrollo local. Staging/prod deben usar EXPO_PUBLIC_API_URL.
     web: 'http://localhost:8080/api',
     android: 'http://10.0.2.2:8080/api',
     ios: 'http://localhost:8080/api',
@@ -11,6 +16,7 @@ const DEFAULT_API_URLS = {
 };
 
 const getApiUrl = () => {
+    // Expo expone variables con prefijo EXPO_PUBLIC_ dentro del bundle mobile.
     const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
     if (configuredUrl) {
         return configuredUrl;
@@ -29,6 +35,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
+    // Antes de cada request se recupera el access token persistido y se agrega
+    // Authorization. Web usa localStorage; nativo usa SecureStore.
     try {
         let token;
 
@@ -61,6 +69,8 @@ api.interceptors.response.use(
             !originalRequest.url.includes('/auth/verificar') &&
             !originalRequest.url.includes('/auth/refresh')
         ) {
+            // Si el access token expiro, se intenta renovar una sola vez con
+            // refresh token. _retry evita bucles infinitos de 401.
             originalRequest._retry = true;
             try {
                 let refreshToken;
@@ -106,6 +116,7 @@ api.interceptors.response.use(
 );
 
 export const servicioAutenticacion = {
+    // Mantener estos wrappers chicos hace que las pantallas no conozcan rutas exactas.
     ingreso: (email, password) => api.post('/auth/login', { email, password }),
     verificar: (verificacion_id, codigo) => api.post('/auth/verificar', { verificacion_id, codigo }),
     reenviarCodigo: (verificacion_id) => api.post('/auth/reenviar-codigo', { verificacion_id }),

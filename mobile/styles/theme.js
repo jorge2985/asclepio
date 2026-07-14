@@ -1,5 +1,7 @@
-
-// mobile/styles/theme.js
+// Tokens visuales compartidos por la app.
+//
+// Nuevas pantallas deberian importar colores/spacing/borderRadius desde aqui
+// para mantener consistencia visual y evitar valores hardcodeados.
 
 export const colors = {
     primary: '#135bec',

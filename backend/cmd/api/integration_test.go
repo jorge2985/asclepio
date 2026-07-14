@@ -1,6 +1,10 @@
 // Tests de integración HTTP para los endpoints de autenticación.
 // Usa httptest para testear el handler + router completo sin un servidor real.
 // Los tests que requieren BD se omiten si DATABASE_URL no está configurado.
+// Tests de integracion HTTP para endpoints principales.
+//
+// Usan httptest para probar router + handlers sin abrir un puerto real. Los
+// tests que requieren BD se omiten si TEST_DATABASE_URL/DATABASE_URL no existe.
 package main
 
 import (

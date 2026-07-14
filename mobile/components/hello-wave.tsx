@@ -1,3 +1,6 @@
+// Animacion decorativa heredada del starter de Expo.
+//
+// No forma parte de los flujos medicos; puede eliminarse si no se usa.
 import Animated from 'react-native-reanimated';
 
 export function HelloWave() {

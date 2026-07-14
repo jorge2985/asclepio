@@ -1,4 +1,8 @@
 
+// Evaluacion post-cita.
+//
+// Permite crear una resena para el medico asociado a una cita. El backend se
+// encarga de validar propiedad de la cita y actualizar la calificacion promedio.
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';

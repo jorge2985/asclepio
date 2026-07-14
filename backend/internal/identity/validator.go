@@ -1,4 +1,7 @@
-// backend/internal/identity/validator.go
+// Package identity contiene autenticacion, registro, 2FA, JWT y refresh tokens.
+//
+// Este archivo valida entradas antes de llegar a BD. Si una regla de formato
+// cambia, conviene hacerlo aqui y no repartir validaciones por handlers.
 package identity
 
 import (
@@ -9,7 +12,7 @@ import (
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
-// ValidateLoginRequest valida los datos de login
+// ValidateLoginRequest valida los datos de login.
 func ValidateLoginRequest(req *LoginRequest) error {
 	if req.Email == "" {
 		return errors.New("el email es requerido")
@@ -26,7 +29,7 @@ func ValidateLoginRequest(req *LoginRequest) error {
 	return nil
 }
 
-// ValidateRegistroRequest valida los datos de registro
+// ValidateRegistroRequest valida los datos de registro.
 func ValidateRegistroRequest(req *RegistroRequest) error {
 	// Validar email
 	if req.Email == "" {

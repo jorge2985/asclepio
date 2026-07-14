@@ -1,3 +1,7 @@
+// Placeholder de agenda del medico.
+//
+// Fase futura: reemplazar por vista diaria/semanal conectada a citas y
+// disponibilidad del backend.
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 

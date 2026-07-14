@@ -1,3 +1,6 @@
+// Seccion colapsable reutilizable.
+//
+// Util para mostrar contenido secundario sin saturar pantallas largas.
 import { PropsWithChildren, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 

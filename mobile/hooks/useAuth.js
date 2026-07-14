@@ -1,4 +1,7 @@
-// mobile/hooks/useAuth.js
+// Hook de conveniencia para pantallas que necesitan autenticacion.
+//
+// Envuelve authStore con nombres simples de UI: login, registrar, logout e
+// inicializar. Si necesitas estado completo, usa authStore directamente.
 import usarStoreAutenticacion from '../stores/authStore';
 
 /**

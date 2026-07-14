@@ -2,6 +2,10 @@
 // Tests del Zustand Store de autenticación
 // Mockea el módulo servicioAutenticacion para no hacer llamadas reales
 
+// Tests del Zustand authStore.
+//
+// Mockea servicioAutenticacion y SecureStore para probar flujo de sesion sin
+// backend ni almacenamiento nativo real.
 jest.mock('react-native', () => ({
     Platform: { OS: 'android' },
 }));

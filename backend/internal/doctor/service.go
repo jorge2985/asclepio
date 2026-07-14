@@ -1,3 +1,7 @@
+// Package doctor gestiona busqueda de medicos, pacientes relacionados y metricas.
+//
+// En este modulo conviven modelos, servicio y handler porque aun es pequeno.
+// Si crece, seguir el patron de identity: separar repository, service y handler.
 package doctor
 
 import (
@@ -54,6 +58,7 @@ func NuevoServicio(db *database.ServicioBD) *Servicio {
 
 // ListarDoctores retorna todos los médicos (con filtro opcional query)
 func (s *Servicio) ListarDoctores(ctx context.Context, query string) ([]Medico, error) {
+	// El filtro es opcional: query vacio devuelve todos los medicos.
 	sql := `
 		SELECT usuario_id, nombre_completo, especialidad, biografia, tarifa_hora, ubicacion, calificacion 
 		FROM medicos 
@@ -92,6 +97,7 @@ func (s *Servicio) ObtenerPorID(ctx context.Context, id uuid.UUID) (*Medico, err
 
 // ListarPacientes retorna la lista de pacientes que han tenido citas con el médico
 func (s *Servicio) ListarPacientes(ctx context.Context, medicoID uuid.UUID) ([]PacienteRelacionado, error) {
+	// Un paciente aparece aqui solo si tuvo al menos una cita con ese medico.
 	sql := `
 		SELECT DISTINCT p.usuario_id, p.nombre_completo, COALESCE(p.telefono, ''), COALESCE(p.direccion, ''), MAX(c.fecha_hora) as ultima_visita
 		FROM pacientes p
@@ -119,6 +125,7 @@ func (s *Servicio) ListarPacientes(ctx context.Context, medicoID uuid.UUID) ([]P
 
 // ObtenerEstadisticas calcula métricas de rendimiento del médico
 func (s *Servicio) ObtenerEstadisticas(ctx context.Context, medicoID uuid.UUID) (*EstadisticasMedico, error) {
+	// Estas metricas alimentan el dashboard medico. Evitar hardcodearlas en mobile.
 	sql := `
 		SELECT 
 			(SELECT COUNT(DISTINCT paciente_id) FROM citas WHERE medico_id = $1 AND estado NOT IN ('cancelada')) as pacientes_atendidos,
@@ -191,6 +198,7 @@ func (h *Handler) Detalle(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListarPacientes(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	if userIDStr == "" {
@@ -216,6 +224,7 @@ func (h *Handler) ListarPacientes(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ObtenerEstadisticas(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
+		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
 		userIDStr = r.Header.Get("X-User-ID")
 	}
 	if userIDStr == "" {

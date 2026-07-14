@@ -1,3 +1,7 @@
+// Package middleware contiene piezas reutilizables del pipeline HTTP.
+//
+// Este archivo implementa un rate limiter simple en memoria. Sirve para MVP y
+// desarrollo; en produccion con multiples instancias conviene usar Redis o WAF.
 package middleware
 
 import (
@@ -11,7 +15,7 @@ type visitante struct {
 	primeraVez time.Time
 }
 
-// RateLimiter limita los intentos por IP en una ventana de tiempo
+// RateLimiter limita los intentos por IP en una ventana de tiempo.
 type RateLimiter struct {
 	mu          sync.Mutex
 	visitantes  map[string]*visitante
@@ -19,7 +23,7 @@ type RateLimiter struct {
 	ventana     time.Duration
 }
 
-// NuevoRateLimiter crea un rate limiter (ej: 5 intentos cada 15 minutos)
+// NuevoRateLimiter crea un rate limiter (ej: 5 intentos cada 15 minutos).
 func NuevoRateLimiter(maxIntentos int, ventana time.Duration) *RateLimiter {
 	rl := &RateLimiter{
 		visitantes:  make(map[string]*visitante),
@@ -28,6 +32,7 @@ func NuevoRateLimiter(maxIntentos int, ventana time.Duration) *RateLimiter {
 	}
 
 	// Limpiar visitantes expirados cada minuto
+	// La limpieza evita que el mapa crezca para siempre con IPs antiguas.
 	go func() {
 		for {
 			time.Sleep(time.Minute)
@@ -59,6 +64,7 @@ func (rl *RateLimiter) permitir(ip string) bool {
 	}
 
 	// Si la ventana expiró, reiniciar
+	// Si la ventana expiro, reiniciamos el contador de esa IP.
 	if time.Since(v.primeraVez) > rl.ventana {
 		v.intentos = 1
 		v.primeraVez = time.Now()
@@ -73,7 +79,7 @@ func (rl *RateLimiter) permitir(ip string) bool {
 	return true
 }
 
-// Middleware retorna un middleware HTTP que aplica rate limiting
+// Middleware retorna un middleware HTTP que aplica rate limiting.
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := obtenerIP(r)
@@ -90,6 +96,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 
 func obtenerIP(r *http.Request) string {
 	// Verificar headers de proxy
+	// Si hay proxy/load balancer delante, estos headers suelen contener la IP real.
 	forwarded := r.Header.Get("X-Forwarded-For")
 	if forwarded != "" {
 		return forwarded
