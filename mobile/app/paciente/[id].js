@@ -7,7 +7,7 @@ import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { colors, spacing, borderRadius } from '../../styles/theme';
+import { colors, spacing } from '../../styles/theme';
 
 // Datos simulados del paciente
 const pacientesData = {

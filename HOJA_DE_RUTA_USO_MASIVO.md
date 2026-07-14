@@ -61,6 +61,15 @@ Duracion estimada: 2 a 4 semanas.
 
 Objetivo: que ningun usuario pueda acceder, modificar o ver datos que no le corresponden.
 
+Avance implementado: RBAC centralizado agregado, rutas protegidas por rol, fallback `X-User-ID` eliminado y tests unitarios de RBAC agregados.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Configurar un secret manager real para `JWT_SECRET`, `DATABASE_URL` y futuros secretos de pagos/notificaciones en staging y produccion.
+- Definir politica de rotacion de secretos y responsable operativo.
+- Configurar dominios reales en `ALLOWED_ORIGINS` para staging y produccion.
+- Integrar auditoria centralizada con un proveedor de logs/observabilidad si se usara uno externo.
+
 Acciones:
 
 1. Eliminar fallback a `X-User-ID`.
@@ -98,6 +107,16 @@ Resultado esperado:
 Duracion estimada: 3 a 5 semanas.
 
 Objetivo: que una persona pueda instalar la app, registrarse, completar su perfil, buscar medico, reservar, pagar, recibir notificaciones y ver su historial sin datos falsos.
+
+Avance implementado: endpoint real de perfil `GET/PUT /api/auth/me` agregado y pantalla de perfil del paciente conectada a datos reales del backend.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Elegir y configurar almacenamiento de imagenes/documentos: S3, Cloudinary, Firebase Storage, Supabase Storage u otro.
+- Obtener credenciales del proveedor elegido para fotos de perfil y documentos medicos.
+- Definir politica de privacidad y consentimiento para almacenar datos de salud, imagenes y documentos.
+- Definir si habra geolocalizacion real para seguimiento; si la hay, configurar permisos, mapas y politica de uso de ubicacion.
+- Configurar proveedor real de envio 2FA si el codigo dejara de mostrarse por consola: email transaccional, SMS o WhatsApp.
 
 Acciones:
 
@@ -138,6 +157,16 @@ Duracion estimada: 3 a 6 semanas.
 
 Objetivo: que un medico pueda operar su agenda y atender pacientes desde la app sin depender de pantallas simuladas.
 
+Avance implementado: dashboard medico conectado a citas, pacientes relacionados y estadisticas reales; arrays simulados principales removidos.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Definir proveedor y proceso de verificacion profesional: validacion manual, integracion con colegio/registro medico o servicio KYC/KYB.
+- Obtener credenciales del proveedor de almacenamiento para matriculas, identidad y certificaciones.
+- Definir politica de acceso medico a historial del paciente y consentimiento explicito del paciente.
+- Elegir proveedor de chat/mensajeria si no se implementa propio: Stream, Firebase, Supabase Realtime, Twilio Conversations u otro.
+- Definir retencion, moderacion y auditoria de mensajes medicos antes de activar chat real.
+
 Acciones:
 
 1. Conectar endpoints ya existentes.
@@ -177,6 +206,18 @@ Duracion estimada: 3 a 5 semanas.
 
 Objetivo: convertir el pago simulado en un flujo confiable, auditable y conciliable.
 
+Avance implementado: pagos dejaron de guardar una referencia externa fija; se agrego `PAYMENT_PROVIDER` configurable y se bloquea `mock` en produccion. La integracion con proveedor real sigue requiriendo credenciales y definicion comercial.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Elegir proveedor de pagos real: Mercado Pago, Stripe, Apple Pay/Google Pay, proveedor local u otro.
+- Crear cuenta comercial, completar KYC/KYB y obtener credenciales sandbox/produccion.
+- Definir modelo comercial: comision por cita, suscripcion medica, cargo al paciente, cargo al medico o mixto.
+- Configurar webhooks firmados del proveedor y URL publica para recibirlos.
+- Definir reglas de cancelacion, reembolso, disputa, contracargo y conciliacion.
+- Definir moneda, impuestos, comprobantes/recibos y responsabilidad fiscal segun pais objetivo.
+- Configurar Apple Pay/Google Pay si se requiere checkout nativo.
+
 Acciones:
 
 1. Elegir proveedor de pagos.
@@ -209,6 +250,16 @@ Resultado esperado:
 Duracion estimada: continua, con primer corte de 3 a 4 semanas.
 
 Objetivo: detectar regresiones antes de que lleguen a usuarios reales.
+
+Avance implementado: tests de RBAC agregados, wrappers API actualizados en tests, backend/mobile verificados y lint mobile limpio.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Configurar E2E en dispositivos/emuladores con servicio externo o CI capaz de correr mobile: Maestro Cloud, BrowserStack, Bitrise, GitHub Actions macOS u otro.
+- Configurar escaneo de seguridad/secretos en CI si se usara proveedor externo: GitHub Advanced Security, Snyk, Gitleaks, Semgrep u otro.
+- Configurar pruebas de carga con entorno staging publico y datos semilla seguros.
+- Configurar monitoreo de errores mobile/backend: Sentry, Datadog, Grafana Cloud, Firebase Crashlytics u otro.
+- Definir indicadores de calidad para release: crash-free sessions, latencia maxima, tasa de error, cobertura minima y flujos E2E obligatorios.
 
 Acciones:
 

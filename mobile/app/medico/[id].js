@@ -2,7 +2,7 @@
 // Detalle de medico y reserva.
 //
 // Carga datos del medico por id, consulta disponibilidad y permite crear cita.
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,13 +27,7 @@ export default function DetalleMedicoScreen() {
     const [cargandoHorarios, setCargandoHorarios] = useState(false);
     const [reservando, setReservando] = useState(false);
 
-    React.useEffect(() => {
-        if (id) {
-            cargarMedico();
-        }
-    }, [id]);
-
-    const cargarMedico = async () => {
+    const cargarMedico = useCallback(async () => {
         try {
             const respuesta = await servicioDoctores.obtener(id);
             setMedico(respuesta.data);
@@ -42,7 +36,13 @@ export default function DetalleMedicoScreen() {
         } finally {
             setCargando(false);
         }
-    };
+    }, [id]);
+
+    React.useEffect(() => {
+        if (id) {
+            cargarMedico();
+        }
+    }, [id, cargarMedico]);
 
     const generarFechas = () => {
         const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -60,13 +60,7 @@ export default function DetalleMedicoScreen() {
     };
     const [fechas] = useState(generarFechas());
 
-    React.useEffect(() => {
-        if (medico) {
-            cargarHorarios();
-        }
-    }, [fechaSeleccionada, medico]);
-
-    const cargarHorarios = async () => {
+    const cargarHorarios = useCallback(async () => {
         if (!medico) return;
         setCargandoHorarios(true);
         setHoraSeleccionada(null);
@@ -80,7 +74,13 @@ export default function DetalleMedicoScreen() {
         } finally {
             setCargandoHorarios(false);
         }
-    };
+    }, [fechaSeleccionada, fechas, medico]);
+
+    React.useEffect(() => {
+        if (medico) {
+            cargarHorarios();
+        }
+    }, [medico, cargarHorarios]);
 
     if (cargando || !medico) {
         return <View style={styles.container}><Text style={{ padding: 20 }}>Cargando...</Text></View>;

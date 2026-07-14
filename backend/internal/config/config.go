@@ -19,6 +19,7 @@ type Config struct {
 	JWTExpiry          time.Duration
 	RefreshTokenExpiry time.Duration
 	AllowedOrigins     []string
+	PaymentProvider    string
 }
 
 // Cargar lee variables de entorno y, si existe, un archivo .env local.
@@ -43,10 +44,15 @@ func Cargar() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port:           getEnv("PORT", "8080"),
-		DatabaseURL:    databaseURL,
-		JWTSecret:      jwtSecret,
-		AllowedOrigins: strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:8081,http://localhost:19006"), ","),
+		Port:            getEnv("PORT", "8080"),
+		DatabaseURL:     databaseURL,
+		JWTSecret:       jwtSecret,
+		AllowedOrigins:  strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:8081,http://localhost:19006"), ","),
+		PaymentProvider: getEnv("PAYMENT_PROVIDER", "mock"),
+	}
+
+	if getEnv("APP_ENV", "development") == "production" && cfg.PaymentProvider == "mock" {
+		return nil, fmt.Errorf("PAYMENT_PROVIDER=mock no esta permitido en produccion")
 	}
 
 	expiry, err := time.ParseDuration(getEnv("JWT_EXPIRY", "24h"))

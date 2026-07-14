@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"asclepio/internal/config"
@@ -76,6 +77,30 @@ type RefreshTokenRequest struct {
 
 type PushTokenRequest struct {
 	Token string `json:"token"`
+}
+
+type PerfilResponse struct {
+	UsuarioID      uuid.UUID `json:"usuario_id"`
+	Email          string    `json:"email"`
+	Rol            Rol       `json:"rol"`
+	NombreCompleto string    `json:"nombre_completo"`
+	Telefono       string    `json:"telefono,omitempty"`
+	Direccion      string    `json:"direccion,omitempty"`
+	Especialidad   string    `json:"especialidad,omitempty"`
+	Biografia      string    `json:"biografia,omitempty"`
+	TarifaHora     float64   `json:"tarifa_hora,omitempty"`
+	Ubicacion      string    `json:"ubicacion,omitempty"`
+	Calificacion   float64   `json:"calificacion,omitempty"`
+}
+
+type ActualizarPerfilRequest struct {
+	NombreCompleto string  `json:"nombre_completo"`
+	Telefono       string  `json:"telefono,omitempty"`
+	Direccion      string  `json:"direccion,omitempty"`
+	Especialidad   string  `json:"especialidad,omitempty"`
+	Biografia      string  `json:"biografia,omitempty"`
+	TarifaHora     float64 `json:"tarifa_hora,omitempty"`
+	Ubicacion      string  `json:"ubicacion,omitempty"`
 }
 
 // LoginResponse — respuesta del login antes de verificar 2FA
@@ -351,6 +376,73 @@ func (s *Servicio) GuardarPushToken(ctx context.Context, req PushTokenRequest, u
 		return errors.New("token es requerido")
 	}
 	return s.repo.ActualizarPushToken(ctx, usuarioID, req.Token)
+}
+
+func (s *Servicio) ObtenerPerfil(ctx context.Context, usuarioID uuid.UUID) (*PerfilResponse, error) {
+	u, _, err := s.repo.FindByID(ctx, usuarioID)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Rol == RolMedico {
+		var perfil PerfilResponse
+		err = s.bd.Pool.QueryRow(ctx, `
+			SELECT u.id, u.email, u.rol, m.nombre_completo, COALESCE(m.especialidad, ''),
+			       COALESCE(m.biografia, ''), COALESCE(m.tarifa_hora, 0),
+			       COALESCE(m.ubicacion, ''), COALESCE(m.calificacion, 0)
+			FROM usuarios u
+			JOIN medicos m ON m.usuario_id = u.id
+			WHERE u.id = $1
+		`, usuarioID).Scan(
+			&perfil.UsuarioID, &perfil.Email, &perfil.Rol, &perfil.NombreCompleto,
+			&perfil.Especialidad, &perfil.Biografia, &perfil.TarifaHora,
+			&perfil.Ubicacion, &perfil.Calificacion,
+		)
+		return &perfil, err
+	}
+
+	var perfil PerfilResponse
+	err = s.bd.Pool.QueryRow(ctx, `
+		SELECT u.id, u.email, u.rol, p.nombre_completo, COALESCE(p.telefono, ''), COALESCE(p.direccion, '')
+		FROM usuarios u
+		JOIN pacientes p ON p.usuario_id = u.id
+		WHERE u.id = $1
+	`, usuarioID).Scan(
+		&perfil.UsuarioID, &perfil.Email, &perfil.Rol, &perfil.NombreCompleto,
+		&perfil.Telefono, &perfil.Direccion,
+	)
+	return &perfil, err
+}
+
+func (s *Servicio) ActualizarPerfil(ctx context.Context, usuarioID uuid.UUID, req ActualizarPerfilRequest) (*PerfilResponse, error) {
+	u, _, err := s.repo.FindByID(ctx, usuarioID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(req.NombreCompleto) == "" {
+		return nil, errors.New("nombre completo es requerido")
+	}
+
+	if u.Rol == RolMedico {
+		_, err = s.bd.Pool.Exec(ctx, `
+			UPDATE medicos
+			SET nombre_completo = $1, especialidad = $2, biografia = $3,
+			    tarifa_hora = $4, ubicacion = $5
+			WHERE usuario_id = $6
+		`, req.NombreCompleto, req.Especialidad, req.Biografia, req.TarifaHora, req.Ubicacion, usuarioID)
+	} else {
+		_, err = s.bd.Pool.Exec(ctx, `
+			UPDATE pacientes
+			SET nombre_completo = $1, telefono = $2, direccion = $3
+			WHERE usuario_id = $4
+		`, req.NombreCompleto, req.Telefono, req.Direccion, usuarioID)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return s.ObtenerPerfil(ctx, usuarioID)
 }
 
 // ---- Helpers ----

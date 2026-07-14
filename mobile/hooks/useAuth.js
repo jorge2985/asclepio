@@ -2,6 +2,7 @@
 //
 // Envuelve authStore con nombres simples de UI: login, registrar, logout e
 // inicializar. Si necesitas estado completo, usa authStore directamente.
+import { useCallback } from 'react';
 import usarStoreAutenticacion from '../stores/authStore';
 
 /**
@@ -18,34 +19,34 @@ export function useAuth() {
      * @param {string} password 
      * @returns {Promise<boolean>} true si el login fue exitoso
      */
-    const login = async (email, password) => {
+    const login = useCallback(async (email, password) => {
         const exito = await ingreso(email, password);
         return exito;
-    };
+    }, [ingreso]);
 
     /**
      * Registra un nuevo usuario
      * @param {Object} datos - Datos del usuario a registrar
      * @returns {Promise<boolean>} true si el registro fue exitoso
      */
-    const registrar = async (datos) => {
+    const registrar = useCallback(async (datos) => {
         const exito = await registro(datos);
         return exito;
-    };
+    }, [registro]);
 
     /**
      * Cierra sesión
      */
-    const logout = async () => {
+    const logout = useCallback(async () => {
         await cerrarSesion();
-    };
+    }, [cerrarSesion]);
 
     /**
      * Inicializa la sesión desde el almacenamiento
      */
-    const inicializar = async () => {
+    const inicializar = useCallback(async () => {
         await hidratar();
-    };
+    }, [hidratar]);
 
     return {
         login,

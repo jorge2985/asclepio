@@ -198,10 +198,6 @@ func (h *Handler) Detalle(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListarPacientes(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
-	}
-	if userIDStr == "" {
 		http.Error(w, "No autorizado", http.StatusUnauthorized)
 		return
 	}
@@ -223,10 +219,6 @@ func (h *Handler) ListarPacientes(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ObtenerEstadisticas(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
-	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
-	}
 	if userIDStr == "" {
 		http.Error(w, "No autorizado", http.StatusUnauthorized)
 		return

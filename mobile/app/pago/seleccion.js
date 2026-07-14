@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from '
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
+import { colors, spacing, borderRadius } from '../../styles/theme';
 
 export default function SeleccionPagoScreen() {
     const router = useRouter();

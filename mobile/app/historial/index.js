@@ -16,11 +16,7 @@ export default function PantallaHistorial() {
     const [historial, setHistorial] = React.useState([]);
     const [cargando, setCargando] = React.useState(true);
 
-    React.useEffect(() => {
-        cargarHistorial();
-    }, []);
-
-    const cargarHistorial = async () => {
+    const cargarHistorial = React.useCallback(async () => {
         try {
             const respuesta = await servicioCitas.historial();
             const citas = respuesta.data || [];
@@ -31,7 +27,11 @@ export default function PantallaHistorial() {
         } finally {
             setCargando(false);
         }
-    };
+    }, []);
+
+    React.useEffect(() => {
+        cargarHistorial();
+    }, [cargarHistorial]);
 
     const agruparPorMes = (citas) => {
         if (citas.length === 0) return [];

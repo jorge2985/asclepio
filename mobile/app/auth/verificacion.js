@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import usarStoreAutenticacion from '../../stores/authStore';
-import { colors, spacing, borderRadius } from '../../styles/theme';
+import { colors, spacing } from '../../styles/theme';
 
 const LONGITUD_CODIGO = 6;
 const TIEMPO_REENVIO = 30; // segundos
@@ -36,7 +36,7 @@ export default function PantallaVerificacion() {
         if (!verificacionPendiente) {
             // Si no venimos del login, volver al login
         }
-    }, []);
+    }, [verificacionPendiente]);
 
     const handleChange = (text, index) => {
         // Solo permitir un dígito

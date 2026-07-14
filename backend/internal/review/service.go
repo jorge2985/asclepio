@@ -105,8 +105,8 @@ func (h *Handler) RegistrarRutas(r chi.Router) {
 func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	autorID, err := uuid.Parse(userIDStr)
 	if err != nil {

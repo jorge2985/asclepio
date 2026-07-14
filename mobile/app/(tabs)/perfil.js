@@ -3,17 +3,33 @@
 //
 // Muestra datos de sesion y accesos a historial, metodos de pago, seguridad y
 // soporte. Varias acciones aun son placeholders de producto.
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
+import { colors, spacing, borderRadius } from '../../styles/theme';
 import usarStoreAutenticacion from '../../stores/authStore';
+import { servicioAutenticacion } from '../../services/api';
 
 export default function PantallaPerfil() {
     const { usuario, cerrarSesion } = usarStoreAutenticacion();
+    const [perfil, setPerfil] = useState(null);
     const router = useRouter();
+
+    useEffect(() => {
+        cargarPerfil();
+    }, []);
+
+    const cargarPerfil = async () => {
+        try {
+            // El perfil real vive en backend; usuario del store es solo la sesion.
+            const res = await servicioAutenticacion.perfil();
+            setPerfil(res.data);
+        } catch (error) {
+            console.error('Error cargando perfil', error);
+        }
+    };
 
     const manejarCierreSesion = async () => {
         Alert.alert(
@@ -59,10 +75,10 @@ export default function PantallaPerfil() {
                         <FontAwesome name="user" size={40} color={colors.white} />
                     </View>
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{usuario?.nombre_completo || 'Usuario'}</Text>
-                        <Text style={styles.userEmail}>{usuario?.email || 'email@ejemplo.com'}</Text>
+                        <Text style={styles.userName}>{perfil?.nombre_completo || usuario?.nombre_completo || 'Usuario'}</Text>
+                        <Text style={styles.userEmail}>{perfil?.email || usuario?.email || 'email@ejemplo.com'}</Text>
                         <View style={styles.roleBadge}>
-                            <Text style={styles.roleText}>{usuario?.rol || 'Paciente'}</Text>
+                            <Text style={styles.roleText}>{perfil?.rol || usuario?.rol || 'Paciente'}</Text>
                         </View>
                     </View>
                 </View>

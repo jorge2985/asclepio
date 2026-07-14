@@ -138,6 +138,7 @@ Backend:
 - `JWT_EXPIRY`: duracion del access token. Default: `24h`.
 - `REFRESH_TOKEN_EXPIRY`: duracion del refresh token. Default: `168h`.
 - `ALLOWED_ORIGINS`: origenes permitidos por CORS separados por coma.
+- `PAYMENT_PROVIDER`: proveedor de pagos. `mock` solo para desarrollo/staging; produccion debe usar un proveedor real.
 
 Mobile:
 - `EXPO_PUBLIC_API_URL`: URL base de la API que consumira la app.

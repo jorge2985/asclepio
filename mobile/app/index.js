@@ -25,7 +25,7 @@ export default function LoginScreen() {
 
     useEffect(() => {
         inicializar();
-    }, []);
+    }, [inicializar]);
 
     // Redirigir si ya está autenticado
     useEffect(() => {
@@ -33,7 +33,7 @@ export default function LoginScreen() {
         if (usuario && !cargando && navigationReady) {
             router.replace(getRutaDestino(usuario));
         }
-    }, [usuario, cargando, rootNavigationState?.key]);
+    }, [usuario, cargando, rootNavigationState?.key, router]);
 
     const handleLogin = async () => {
         // Validar formulario

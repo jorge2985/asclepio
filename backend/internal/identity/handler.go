@@ -41,6 +41,8 @@ func (h *Handler) RegistrarRutas(r chi.Router, rateLimiter func(http.Handler) ht
 func (h *Handler) RegistrarRutasProtegidas(r chi.Router) {
 	// Rutas protegidas: requieren que AuthMiddleware haya puesto user_id en context.
 	r.Put("/push-token", h.handleGuardarPushToken)
+	r.Get("/me", h.handleObtenerPerfil)
+	r.Put("/me", h.handleActualizarPerfil)
 }
 
 func (h *Handler) handleRegistro(w http.ResponseWriter, r *http.Request) {
@@ -135,8 +137,8 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleGuardarPushToken(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	usuarioID, err := uuid.Parse(userIDStr)
 	if err != nil {
@@ -158,4 +160,58 @@ func (h *Handler) handleGuardarPushToken(w http.ResponseWriter, r *http.Request)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"mensaje": "Push token actualizado correctamente"})
+}
+
+func (h *Handler) handleObtenerPerfil(w http.ResponseWriter, r *http.Request) {
+	usuarioID, ok := obtenerUsuarioIDDesdeRequest(w, r)
+	if !ok {
+		return
+	}
+
+	perfil, err := h.svc.ObtenerPerfil(r.Context(), usuarioID)
+	if err != nil {
+		http.Error(w, "Error obteniendo perfil", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(perfil)
+}
+
+func (h *Handler) handleActualizarPerfil(w http.ResponseWriter, r *http.Request) {
+	usuarioID, ok := obtenerUsuarioIDDesdeRequest(w, r)
+	if !ok {
+		return
+	}
+
+	var req ActualizarPerfilRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "JSON invalido", http.StatusBadRequest)
+		return
+	}
+
+	perfil, err := h.svc.ActualizarPerfil(r.Context(), usuarioID, req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(perfil)
+}
+
+func obtenerUsuarioIDDesdeRequest(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	userIDStr := ascMiddleware.GetUserID(r.Context())
+	if userIDStr == "" {
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return uuid.Nil, false
+	}
+
+	usuarioID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return uuid.Nil, false
+	}
+
+	return usuarioID, true
 }

@@ -8,7 +8,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Platform }
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { colors, spacing, fonts, borderRadius } from '../../styles/theme';
+import { colors, spacing, borderRadius } from '../../styles/theme';
 
 import { servicioCitas } from '../../services/api';
 

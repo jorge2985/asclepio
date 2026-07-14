@@ -23,7 +23,6 @@ export default function PantallaInicio() {
     const [busqueda, setBusqueda] = useState('');
     const [doctores, setDoctores] = useState([]);
     const [citaActiva, setCitaActiva] = useState(null);
-    const [cargando, setCargando] = useState(true);
     const router = useRouter();
 
     // Cargar doctores reales
@@ -53,7 +52,7 @@ export default function PantallaInicio() {
         } catch (error) {
             console.error('Error cargando doctores', error);
         } finally {
-            setCargando(false);
+            // La lista se actualiza con setDoctores; no se requiere flag visual aun.
         }
     };
 

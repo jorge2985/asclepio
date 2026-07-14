@@ -12,7 +12,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Claves para el contexto
 type contextKey string
 
 const (
@@ -20,62 +19,85 @@ const (
 	ContextKeyUserRol contextKey = "user_rol"
 )
 
-// AuthMiddleware verifica el JWT en el header Authorization.
+func writeJSONError(w http.ResponseWriter, message string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(`{"error":"` + message + `"}`))
+}
+
+// AuthMiddleware verifica el JWT en Authorization: Bearer <token>.
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				http.Error(w, `{"error":"token requerido"}`, http.StatusUnauthorized)
+				writeJSONError(w, "token requerido", http.StatusUnauthorized)
 				return
 			}
 
-			// El cliente debe enviar Authorization: Bearer <token>.
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-				http.Error(w, `{"error":"formato de token inválido"}`, http.StatusUnauthorized)
+				writeJSONError(w, "formato de token invalido", http.StatusUnauthorized)
 				return
 			}
 
-			tokenString := parts[1]
-
-			// Validar firma y algoritmo evita aceptar tokens manipulados.
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, jwt.ErrSignatureInvalid
 				}
 				return []byte(jwtSecret), nil
 			})
-
 			if err != nil || !token.Valid {
-				http.Error(w, `{"error":"token inválido o expirado"}`, http.StatusUnauthorized)
+				writeJSONError(w, "token invalido o expirado", http.StatusUnauthorized)
 				return
 			}
 
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
-				http.Error(w, `{"error":"claims inválidos"}`, http.StatusUnauthorized)
+				writeJSONError(w, "claims invalidos", http.StatusUnauthorized)
 				return
 			}
 
 			userID, _ := claims["sub"].(string)
 			userRol, _ := claims["rol"].(string)
-
-			if userID == "" {
-				http.Error(w, `{"error":"token sin usuario"}`, http.StatusUnauthorized)
+			if userID == "" || userRol == "" {
+				writeJSONError(w, "token sin usuario o rol", http.StatusUnauthorized)
 				return
 			}
 
 			// Guardar user_id/rol en context evita confiar en datos enviados por el cliente.
 			ctx := context.WithValue(r.Context(), ContextKeyUserID, userID)
 			ctx = context.WithValue(ctx, ContextKeyUserRol, userRol)
-
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-// GetUserID obtiene el ID del usuario desde el contexto
+// RequireRole permite entrar solo a usuarios con alguno de los roles indicados.
+// Debe ejecutarse despues de AuthMiddleware, porque lee el rol desde context.
+func RequireRole(roles ...string) func(http.Handler) http.Handler {
+	allowed := make(map[string]bool, len(roles))
+	for _, rol := range roles {
+		allowed[rol] = true
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userRol := GetUserRol(r.Context())
+			if userRol == "" {
+				writeJSONError(w, "rol requerido", http.StatusUnauthorized)
+				return
+			}
+			if !allowed[userRol] {
+				writeJSONError(w, "no tienes permisos para esta accion", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// GetUserID obtiene el ID del usuario autenticado desde el context.
 func GetUserID(ctx context.Context) string {
 	if id, ok := ctx.Value(ContextKeyUserID).(string); ok {
 		return id
@@ -83,7 +105,7 @@ func GetUserID(ctx context.Context) string {
 	return ""
 }
 
-// GetUserRol obtiene el rol del usuario desde el contexto
+// GetUserRol obtiene el rol del usuario autenticado desde el context.
 func GetUserRol(ctx context.Context) string {
 	if rol, ok := ctx.Value(ContextKeyUserRol).(string); ok {
 		return rol

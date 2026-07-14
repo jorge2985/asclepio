@@ -64,6 +64,8 @@ describe('servicioAutenticacion', () => {
         expect(typeof servicioAutenticacion.reenviarCodigo).toBe('function');
         expect(typeof servicioAutenticacion.registro).toBe('function');
         expect(typeof servicioAutenticacion.guardarPushToken).toBe('function');
+        expect(typeof servicioAutenticacion.perfil).toBe('function');
+        expect(typeof servicioAutenticacion.actualizarPerfil).toBe('function');
     });
 
     test('servicioCitas tiene los métodos requeridos', () => {
@@ -81,6 +83,8 @@ describe('servicioAutenticacion', () => {
         const { servicioDoctores } = require('../services/api');
         expect(typeof servicioDoctores.listar).toBe('function');
         expect(typeof servicioDoctores.obtener).toBe('function');
+        expect(typeof servicioDoctores.pacientes).toBe('function');
+        expect(typeof servicioDoctores.estadisticas).toBe('function');
     });
 
     test('servicioResenas tiene el método crear', () => {

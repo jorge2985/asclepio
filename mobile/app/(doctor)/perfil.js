@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import usarStoreAutenticacion from '../../stores/authStore';
-import { spacing, borderRadius } from '../../styles/theme';
+import { spacing } from '../../styles/theme';
 
 const dc = {
     primary: '#13ecda',

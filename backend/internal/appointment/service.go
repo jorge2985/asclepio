@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"asclepio/internal/config"
 	"asclepio/internal/database"
 	ascMiddleware "asclepio/internal/middleware"
 	"asclepio/internal/notification"
@@ -56,10 +57,11 @@ type PagarCitaRequest struct {
 type Servicio struct {
 	db    *database.ServicioBD
 	notif notification.Servicio
+	cfg   *config.Config
 }
 
-func NuevoServicio(db *database.ServicioBD, notif notification.Servicio) *Servicio {
-	return &Servicio{db: db, notif: notif}
+func NuevoServicio(db *database.ServicioBD, notif notification.Servicio, cfg *config.Config) *Servicio {
+	return &Servicio{db: db, notif: notif, cfg: cfg}
 }
 
 func (s *Servicio) Crear(ctx context.Context, req CrearCitaRequest, pacienteID uuid.UUID) (*Cita, error) {
@@ -167,24 +169,24 @@ func (s *Servicio) Confirmar(ctx context.Context, id uuid.UUID, medicoID uuid.UU
 	if err != nil {
 		return err
 	}
-	
+
 	s.notif.EnviarNotificacion(ctx, pacienteID, "Cita Confirmada", "Tu cita ha sido confirmada por el médico.", nil)
 	return nil
 }
 
 func (s *Servicio) Cancelar(ctx context.Context, id uuid.UUID, usuarioID uuid.UUID) error {
 	// Tanto paciente como medico pueden cancelar si participan en la cita.
-    var pacienteID, medicoID uuid.UUID
+	var pacienteID, medicoID uuid.UUID
 	err := s.db.Pool.QueryRow(ctx, "UPDATE citas SET estado = 'cancelada' WHERE id = $1 AND (paciente_id = $2 OR medico_id = $2) RETURNING paciente_id, medico_id", id, usuarioID).Scan(&pacienteID, &medicoID)
 	if err != nil {
 		return err
 	}
-	
-    if usuarioID == pacienteID {
-	    s.notif.EnviarNotificacion(ctx, medicoID, "Cita Cancelada", "El paciente ha cancelado la cita.", nil)
-    } else {
-        s.notif.EnviarNotificacion(ctx, pacienteID, "Cita Cancelada", "El médico ha cancelado la cita.", nil)
-    }
+
+	if usuarioID == pacienteID {
+		s.notif.EnviarNotificacion(ctx, medicoID, "Cita Cancelada", "El paciente ha cancelado la cita.", nil)
+	} else {
+		s.notif.EnviarNotificacion(ctx, pacienteID, "Cita Cancelada", "El médico ha cancelado la cita.", nil)
+	}
 	return nil
 }
 
@@ -194,7 +196,7 @@ func (s *Servicio) Reprogramar(ctx context.Context, id uuid.UUID, pacienteID uui
 	if err != nil {
 		return err
 	}
-	
+
 	s.notif.EnviarNotificacion(ctx, medicoID, "Cita Reprogramada", "Un paciente ha solicitado reprogramar su cita.", nil)
 	return nil
 }
@@ -207,11 +209,12 @@ func (s *Servicio) Pagar(ctx context.Context, id uuid.UUID, pacienteID uuid.UUID
 		return err
 	}
 
+	referenciaExterna := fmt.Sprintf("%s_%s", s.cfg.PaymentProvider, uuid.NewString())
 	sqlPago := `
 		INSERT INTO pagos (cita_id, monto, metodo, estado, referencia_externa, fecha_pago)
-		VALUES ($1, $2, $3, 'pagado', 'simulacion_mvp_1234', CURRENT_TIMESTAMP)
+		VALUES ($1, $2, $3, 'pagado', $4, CURRENT_TIMESTAMP)
 	`
-	_, err = s.db.Pool.Exec(ctx, sqlPago, id, precio, metodo)
+	_, err = s.db.Pool.Exec(ctx, sqlPago, id, precio, metodo, referenciaExterna)
 	if err != nil {
 		return err
 	}
@@ -222,69 +225,68 @@ func (s *Servicio) Pagar(ctx context.Context, id uuid.UUID, pacienteID uuid.UUID
 
 func (s *Servicio) GetDisponibilidad(ctx context.Context, medicoID uuid.UUID, fecha time.Time) ([]string, error) {
 	// La disponibilidad sale de bloques recurrentes y descuenta citas ya ocupadas.
-    diaSemana := int(fecha.Weekday())
-    
-    // Obtener bloques de disponibilidad del doctor
-    sqlDispo := `SELECT hora_inicio, hora_fin FROM dispo_medicos WHERE medico_id = $1 AND dia_semana = $2 AND es_recurrente = TRUE`
-    rows, err := s.db.Pool.Query(ctx, sqlDispo, medicoID, diaSemana)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	diaSemana := int(fecha.Weekday())
 
-    var bloques []string
-    type Rango struct {
-        Inicio time.Time
-        Fin    time.Time
-    }
-    var rangos []Rango
+	// Obtener bloques de disponibilidad del doctor
+	sqlDispo := `SELECT hora_inicio, hora_fin FROM dispo_medicos WHERE medico_id = $1 AND dia_semana = $2 AND es_recurrente = TRUE`
+	rows, err := s.db.Pool.Query(ctx, sqlDispo, medicoID, diaSemana)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    for rows.Next() {
-        var ini, fin time.Time
-        if err := rows.Scan(&ini, &fin); err != nil {
-            return nil, err
-        }
-        rangos = append(rangos, Rango{Inicio: ini, Fin: fin})
-    }
+	var bloques []string
+	type Rango struct {
+		Inicio time.Time
+		Fin    time.Time
+	}
+	var rangos []Rango
 
-    if len(rangos) == 0 {
-        return []string{}, nil
-    }
+	for rows.Next() {
+		var ini, fin time.Time
+		if err := rows.Scan(&ini, &fin); err != nil {
+			return nil, err
+		}
+		rangos = append(rangos, Rango{Inicio: ini, Fin: fin})
+	}
 
-    // Obtener citas existentes para ese día
-    inicioDia := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 0, 0, 0, 0, fecha.Location())
-    finDia := inicioDia.Add(24 * time.Hour)
-    
-    sqlCitas := `SELECT fecha_hora FROM citas WHERE medico_id = $1 AND fecha_hora >= $2 AND fecha_hora < $3 AND estado NOT IN ('cancelada')`
-    rowsCitas, err := s.db.Pool.Query(ctx, sqlCitas, medicoID, inicioDia, finDia)
-    if err != nil {
-        return nil, err
-    }
-    defer rowsCitas.Close()
+	if len(rangos) == 0 {
+		return []string{}, nil
+	}
 
-    citasOcupadas := make(map[string]bool)
-    for rowsCitas.Next() {
-        var hCita time.Time
-        if err := rowsCitas.Scan(&hCita); err == nil {
-            citasOcupadas[hCita.Local().Format("15:04")] = true
-        }
-    }
+	// Obtener citas existentes para ese día
+	inicioDia := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 0, 0, 0, 0, fecha.Location())
+	finDia := inicioDia.Add(24 * time.Hour)
 
-    // Generar slots de 30 mins
-    for _, r := range rangos {
-        actual := r.Inicio
-        for actual.Before(r.Fin) {
-            horaStr := actual.Format("15:04")
-            if !citasOcupadas[horaStr] {
-                bloques = append(bloques, actual.Format("03:04 PM")) // ej: 09:00 AM
-            }
-            actual = actual.Add(30 * time.Minute)
-        }
-    }
+	sqlCitas := `SELECT fecha_hora FROM citas WHERE medico_id = $1 AND fecha_hora >= $2 AND fecha_hora < $3 AND estado NOT IN ('cancelada')`
+	rowsCitas, err := s.db.Pool.Query(ctx, sqlCitas, medicoID, inicioDia, finDia)
+	if err != nil {
+		return nil, err
+	}
+	defer rowsCitas.Close()
 
-    return bloques, nil
+	citasOcupadas := make(map[string]bool)
+	for rowsCitas.Next() {
+		var hCita time.Time
+		if err := rowsCitas.Scan(&hCita); err == nil {
+			citasOcupadas[hCita.Local().Format("15:04")] = true
+		}
+	}
+
+	// Generar slots de 30 mins
+	for _, r := range rangos {
+		actual := r.Inicio
+		for actual.Before(r.Fin) {
+			horaStr := actual.Format("15:04")
+			if !citasOcupadas[horaStr] {
+				bloques = append(bloques, actual.Format("03:04 PM")) // ej: 09:00 AM
+			}
+			actual = actual.Add(30 * time.Minute)
+		}
+	}
+
+	return bloques, nil
 }
-
 
 // --- Handler ---
 
@@ -310,8 +312,8 @@ func (h *Handler) RegistrarRutas(r chi.Router) {
 func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	pacienteID, err := uuid.Parse(userIDStr)
 	if err != nil {
@@ -339,8 +341,8 @@ func (h *Handler) Crear(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Historial(w http.ResponseWriter, r *http.Request) {
 	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	pacienteID, err := uuid.Parse(userIDStr)
 	if err != nil {
@@ -357,10 +359,10 @@ func (h *Handler) Historial(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListarPorMedico(w http.ResponseWriter, r *http.Request) {
-    userIDStr := ascMiddleware.GetUserID(r.Context())
+	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	medicoID, err := uuid.Parse(userIDStr)
 	if err != nil {
@@ -377,150 +379,149 @@ func (h *Handler) ListarPorMedico(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Disponibilidad(w http.ResponseWriter, r *http.Request) {
-    medicoIDStr := r.URL.Query().Get("medico_id")
-    fechaStr := r.URL.Query().Get("fecha") // YYYY-MM-DD
-    
-    medicoID, err := uuid.Parse(medicoIDStr)
-    if err != nil {
-        http.Error(w, "ID de médico inválido", http.StatusBadRequest)
-        return
-    }
-    
-    fecha, err := time.Parse("2006-01-02", fechaStr)
-    if err != nil {
-        http.Error(w, "Fecha inválida (YYYY-MM-DD)", http.StatusBadRequest)
-        return
-    }
-    
-    bloques, err := h.svc.GetDisponibilidad(r.Context(), medicoID, fecha)
-    if err != nil {
-        http.Error(w, "Error buscando disponibilidad", http.StatusInternalServerError)
-        return
-    }
-    
-    json.NewEncoder(w).Encode(bloques)
+	medicoIDStr := r.URL.Query().Get("medico_id")
+	fechaStr := r.URL.Query().Get("fecha") // YYYY-MM-DD
+
+	medicoID, err := uuid.Parse(medicoIDStr)
+	if err != nil {
+		http.Error(w, "ID de médico inválido", http.StatusBadRequest)
+		return
+	}
+
+	fecha, err := time.Parse("2006-01-02", fechaStr)
+	if err != nil {
+		http.Error(w, "Fecha inválida (YYYY-MM-DD)", http.StatusBadRequest)
+		return
+	}
+
+	bloques, err := h.svc.GetDisponibilidad(r.Context(), medicoID, fecha)
+	if err != nil {
+		http.Error(w, "Error buscando disponibilidad", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(bloques)
 }
 
 func (h *Handler) Confirmar(w http.ResponseWriter, r *http.Request) {
-    citaIDStr := chi.URLParam(r, "id")
-    citaID, err := uuid.Parse(citaIDStr)
-    if err != nil {
-        http.Error(w, "ID de cita inválido", http.StatusBadRequest)
-        return
-    }
-    
-    userIDStr := ascMiddleware.GetUserID(r.Context())
+	citaIDStr := chi.URLParam(r, "id")
+	citaID, err := uuid.Parse(citaIDStr)
+	if err != nil {
+		http.Error(w, "ID de cita inválido", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	medicoID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		http.Error(w, "Usuario inválido", http.StatusUnauthorized)
 		return
 	}
-    
-    err = h.svc.Confirmar(r.Context(), citaID, medicoID)
-    if err != nil {
-        http.Error(w, "Error confirmando cita", http.StatusInternalServerError)
-        return
-    }
-    json.NewEncoder(w).Encode(map[string]string{"mensaje": "Cita confirmada"})
+
+	err = h.svc.Confirmar(r.Context(), citaID, medicoID)
+	if err != nil {
+		http.Error(w, "Error confirmando cita", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"mensaje": "Cita confirmada"})
 }
 
 func (h *Handler) Cancelar(w http.ResponseWriter, r *http.Request) {
-    citaIDStr := chi.URLParam(r, "id")
-    citaID, err := uuid.Parse(citaIDStr)
-    if err != nil {
-        http.Error(w, "ID de cita inválido", http.StatusBadRequest)
-        return
-    }
-    
-    userIDStr := ascMiddleware.GetUserID(r.Context())
+	citaIDStr := chi.URLParam(r, "id")
+	citaID, err := uuid.Parse(citaIDStr)
+	if err != nil {
+		http.Error(w, "ID de cita inválido", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	usuarioID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		http.Error(w, "Usuario inválido", http.StatusUnauthorized)
 		return
 	}
-    
-    err = h.svc.Cancelar(r.Context(), citaID, usuarioID)
-    if err != nil {
-        http.Error(w, "Error cancelando cita", http.StatusInternalServerError)
-        return
-    }
-    json.NewEncoder(w).Encode(map[string]string{"mensaje": "Cita cancelada"})
+
+	err = h.svc.Cancelar(r.Context(), citaID, usuarioID)
+	if err != nil {
+		http.Error(w, "Error cancelando cita", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"mensaje": "Cita cancelada"})
 }
 
 func (h *Handler) Reprogramar(w http.ResponseWriter, r *http.Request) {
-    citaIDStr := chi.URLParam(r, "id")
-    citaID, err := uuid.Parse(citaIDStr)
-    if err != nil {
-        http.Error(w, "ID de cita inválido", http.StatusBadRequest)
-        return
-    }
-    
-    userIDStr := ascMiddleware.GetUserID(r.Context())
+	citaIDStr := chi.URLParam(r, "id")
+	citaID, err := uuid.Parse(citaIDStr)
+	if err != nil {
+		http.Error(w, "ID de cita inválido", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	pacienteID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		http.Error(w, "Usuario inválido", http.StatusUnauthorized)
 		return
 	}
-    
-    var req ReprogramarCitaRequest
+
+	var req ReprogramarCitaRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "JSON inválido", http.StatusBadRequest)
 		return
 	}
-    
-    err = h.svc.Reprogramar(r.Context(), citaID, pacienteID, req.NuevaFechaHora)
-    if err != nil {
-        http.Error(w, "Error reprogramando cita", http.StatusInternalServerError)
-        return
-    }
-    json.NewEncoder(w).Encode(map[string]string{"mensaje": "Cita reprogramada"})
+
+	err = h.svc.Reprogramar(r.Context(), citaID, pacienteID, req.NuevaFechaHora)
+	if err != nil {
+		http.Error(w, "Error reprogramando cita", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"mensaje": "Cita reprogramada"})
 }
 
 func (h *Handler) Pagar(w http.ResponseWriter, r *http.Request) {
-    citaIDStr := chi.URLParam(r, "id")
-    citaID, err := uuid.Parse(citaIDStr)
-    if err != nil {
-        http.Error(w, "ID de cita inválido", http.StatusBadRequest)
-        return
-    }
-    
-    userIDStr := ascMiddleware.GetUserID(r.Context())
+	citaIDStr := chi.URLParam(r, "id")
+	citaID, err := uuid.Parse(citaIDStr)
+	if err != nil {
+		http.Error(w, "ID de cita inválido", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := ascMiddleware.GetUserID(r.Context())
 	if userIDStr == "" {
-		// TODO fase 1: eliminar este fallback y confiar solo en el JWT.
-		userIDStr = r.Header.Get("X-User-ID")
+		http.Error(w, "Usuario invalido", http.StatusUnauthorized)
+		return
 	}
 	pacienteID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		http.Error(w, "Usuario inválido", http.StatusUnauthorized)
 		return
 	}
-    
-    var req PagarCitaRequest
+
+	var req PagarCitaRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "JSON inválido", http.StatusBadRequest)
 		return
 	}
-    
-    err = h.svc.Pagar(r.Context(), citaID, pacienteID, req.Metodo)
-    if err != nil {
-		fmt.Println("Error pago:", err)
-        http.Error(w, "Error procesando pago", http.StatusInternalServerError)
-        return
-    }
-    
-	w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(map[string]string{"mensaje": "Pago procesado exitosamente"})
-}
 
+	err = h.svc.Pagar(r.Context(), citaID, pacienteID, req.Metodo)
+	if err != nil {
+		fmt.Println("Error pago:", err)
+		http.Error(w, "Error procesando pago", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"mensaje": "Pago procesado exitosamente"})
+}

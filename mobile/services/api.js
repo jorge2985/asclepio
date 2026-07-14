@@ -123,11 +123,15 @@ export const servicioAutenticacion = {
     registro: (datos) => api.post('/auth/registro', datos),
     guardarPushToken: (token) => api.put('/auth/push-token', { token }),
     refresh: (refresh_token) => api.post('/auth/refresh', { refresh_token }),
+    perfil: () => api.get('/auth/me'),
+    actualizarPerfil: (datos) => api.put('/auth/me', datos),
 };
 
 export const servicioDoctores = {
     listar: (query = '') => api.get(`/doctores?q=${query}`),
     obtener: (id) => api.get(`/doctores/${id}`),
+    pacientes: () => api.get('/doctores/pacientes'),
+    estadisticas: () => api.get('/doctores/estadisticas'),
 };
 
 export const servicioCitas = {

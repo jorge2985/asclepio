@@ -3,8 +3,8 @@
 //
 // Esta pantalla no procesa pagos; solo informa resultado y ofrece volver al
 // flujo principal. La logica de pago vive en pago/seleccion.js y backend.
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, fonts, borderRadius } from '../../styles/theme';

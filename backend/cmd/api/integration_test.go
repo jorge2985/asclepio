@@ -44,10 +44,11 @@ func setupRouter(t *testing.T) (http.Handler, func()) {
 	}
 
 	cfg := &config.Config{
-		DatabaseURL:    dbURL,
-		JWTSecret:      "test-secret-key-1234567890",
-		JWTExpiry:      1 * time.Hour,
-		AllowedOrigins: []string{"*"},
+		DatabaseURL:     dbURL,
+		JWTSecret:       "test-secret-key-1234567890",
+		JWTExpiry:       1 * time.Hour,
+		AllowedOrigins:  []string{"*"},
+		PaymentProvider: "mock",
 	}
 
 	bd, err := database.NuevoServicioBD(cfg.DatabaseURL)
@@ -63,7 +64,7 @@ func setupRouter(t *testing.T) (http.Handler, func()) {
 	handlerDoctor := doctor.NuevoHandler(svcDoctor)
 
 	svcNotif := notification.NuevoServicioPush(bd)
-	svcAppt := appointment.NuevoServicio(bd, svcNotif)
+	svcAppt := appointment.NuevoServicio(bd, svcNotif, cfg)
 	handlerAppt := appointment.NuevoHandler(svcAppt)
 
 	svcReview := review.NuevoServicio(bd)
@@ -76,7 +77,7 @@ func setupRouter(t *testing.T) (http.Handler, func()) {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-User-ID"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type"},
 	}))
 	r.Use(middleware.AllowContentType("application/json"))
 
@@ -97,9 +98,28 @@ func setupRouter(t *testing.T) (http.Handler, func()) {
 		r.Group(func(rProtected chi.Router) {
 			rProtected.Use(ascMiddleware.AuthMiddleware(cfg.JWTSecret))
 
-			rProtected.Route("/doctores", handlerDoctor.RegistrarRutas)
-			rProtected.Route("/citas", handlerAppt.RegistrarRutas)
-			rProtected.Route("/resenas", handlerReview.RegistrarRutas)
+			rProtected.Route("/doctores", func(r chi.Router) {
+				r.Group(func(rMedico chi.Router) {
+					rMedico.Use(ascMiddleware.RequireRole("medico", "admin"))
+					rMedico.Get("/pacientes", handlerDoctor.ListarPacientes)
+					rMedico.Get("/estadisticas", handlerDoctor.ObtenerEstadisticas)
+				})
+				r.Get("/", handlerDoctor.Listar)
+				r.Get("/{id}", handlerDoctor.Detalle)
+			})
+			rProtected.Route("/citas", func(r chi.Router) {
+				r.With(ascMiddleware.RequireRole("paciente")).Post("/", handlerAppt.Crear)
+				r.With(ascMiddleware.RequireRole("paciente")).Get("/", handlerAppt.Historial)
+				r.With(ascMiddleware.RequireRole("medico", "admin")).Get("/medico", handlerAppt.ListarPorMedico)
+				r.Get("/disponibilidad", handlerAppt.Disponibilidad)
+				r.With(ascMiddleware.RequireRole("medico", "admin")).Put("/{id}/confirmar", handlerAppt.Confirmar)
+				r.With(ascMiddleware.RequireRole("paciente", "medico", "admin")).Put("/{id}/cancelar", handlerAppt.Cancelar)
+				r.With(ascMiddleware.RequireRole("paciente")).Put("/{id}/reprogramar", handlerAppt.Reprogramar)
+				r.With(ascMiddleware.RequireRole("paciente")).Post("/{id}/pago", handlerAppt.Pagar)
+			})
+			rProtected.Route("/resenas", func(r chi.Router) {
+				r.With(ascMiddleware.RequireRole("paciente")).Post("/", handlerReview.Crear)
+			})
 		})
 	})
 
