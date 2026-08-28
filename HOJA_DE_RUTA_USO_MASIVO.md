@@ -331,6 +331,17 @@ Resultado esperado:
 - Existe un ambiente productivo controlado.
 - Se puede operar la aplicacion sin entrar manualmente a la base de datos.
 
+Avance implementado: se agrego `backend/Dockerfile`, `docker-compose.yml` para entorno local reproducible, migrador versionado `backend/scripts/migrate`, CI reforzado con PostgreSQL de prueba, tests, build, lint y escaneo basico de secretos conocidos. Tambien se documento operacion, despliegue, backups, monitoreo e incidentes en `docs/OPERATIONS.md`.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Elegir proveedor de hosting para staging y produccion.
+- Crear PostgreSQL administrado y configurar backups reales.
+- Definir dominio publico, TLS, DNS y politica de CORS final.
+- Configurar secret manager real para `DATABASE_URL`, `JWT_SECRET`, pagos, push y almacenamiento.
+- Configurar proveedor de observabilidad/alertas: Sentry, Datadog, Grafana Cloud, CloudWatch u otro.
+- Definir responsable operativo, canal de soporte y proceso formal de incidentes.
+
 ## Fase 7 - Cumplimiento legal, privacidad y tiendas
 
 Duracion estimada: 2 a 4 semanas, con asesoria legal.
@@ -368,6 +379,17 @@ Resultado esperado:
 
 - La app esta lista para revision de Play Store/App Store.
 - Los usuarios entienden que datos se recolectan y para que.
+
+Avance implementado: se creo `docs/LEGAL_AND_STORE_CHECKLIST.md` con checklist de privacidad, datos de salud, permisos moviles, declaraciones para Play Store/App Store, eliminacion de cuenta y riesgos de claims medicos.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Revision legal segun pais objetivo y jurisdicciones donde se publicara.
+- Redaccion/aprobacion final de politica de privacidad, terminos, consentimiento y eliminacion de cuenta.
+- Crear cuentas de desarrollador Apple Developer y Google Play Console.
+- Publicar URLs oficiales de privacidad, soporte y eliminacion de cuenta.
+- Definir branding definitivo, screenshots reales, clasificacion de edad y descripciones de tienda.
+- Confirmar si la app es solo gestion de citas o si habilitara telemedicina/diagnostico.
 
 ## Fase 8 - Beta controlada
 
@@ -409,6 +431,17 @@ Resultado esperado:
 - Evidencia de que usuarios reales pueden completar el ciclo de valor.
 - Lista priorizada de mejoras antes del lanzamiento abierto.
 
+Avance implementado: se creo `docs/BETA_PLAN.md` con alcance de beta cerrada, criterios de entrada/salida, flujos a probar, metricas, soporte, cadencia de seguimiento y matriz de riesgos.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Reclutar pacientes y medicos reales para la beta.
+- Habilitar TestFlight, Google Play Internal/Closed Testing o plataforma equivalente.
+- Definir ciudad/zona piloto y disponibilidad real de medicos.
+- Configurar URL publica de staging y servicios externos necesarios para la beta.
+- Activar soporte operativo con responsable humano y canal visible.
+- Validar pagos reales solo cuando exista proveedor, cuenta comercial y reglas de reembolso.
+
 ## Fase 9 - Lanzamiento publico y crecimiento
 
 Duracion estimada: continua.
@@ -443,6 +476,17 @@ Acciones:
 Resultado esperado:
 
 - Asclepio deja de ser solo una app y se convierte en una plataforma operable.
+
+Avance implementado: se creo `docs/LAUNCH_PLAN.md` con estrategia de lanzamiento progresivo, criterios de go/no-go, checklist por area, metricas tempranas, riesgos operativos y reglas para crecimiento controlado.
+
+Pendiente por credenciales/proveedores/decisiones externas:
+
+- Obtener aprobacion de App Store y Play Store con builds firmados.
+- Activar analytics, crash reporting y monitoreo en produccion.
+- Definir presupuesto/canales de adquisicion de pacientes y medicos.
+- Cerrar procesos comerciales: onboarding medico, reclamos, reputacion, soporte y moderacion.
+- Escalar regiones solo cuando haya capacidad medica, soporte y monitoreo suficiente.
+- Planificar roadmap trimestral con datos reales de beta/lanzamiento.
 
 ## Prioridades inmediatas recomendadas
 

@@ -1,0 +1,13 @@
+# Evita mandar dependencias, caches y secretos al build Docker.
+
+.env
+.env.*
+!.env.example
+
+.gocache
+tmp
+logs
+
+*.test
+*.out
+*.exe

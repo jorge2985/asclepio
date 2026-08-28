@@ -23,14 +23,17 @@ Sistema completo de gestión médica con backend en Go y frontend móvil en Reac
 ```
 asclepio/
 ├── backend/                 # Backend en Go
-│   ├── cmd/api/            # Punto de entrada
-│   ├── internal/           # Lógica de negocio
+│   ├── cmd/api/            # Punto de entrada HTTP
+│   ├── internal/           # Logica de negocio
 │   │   ├── identity/       # Autenticación
 │   │   ├── doctor/         # Gestión de doctores
 │   │   ├── appointment/    # Gestión de citas
 │   │   └── database/       # Configuración DB
+│   ├── scripts/            # Herramientas operativas y diagnostico
 │   └── database/
 │       └── migrations/     # Migraciones SQL
+│
+├── docs/                    # Operacion, stores, beta y lanzamiento
 │
 ├── mobile/                  # Frontend móvil
 │   ├── app/                # Rutas y pantallas
@@ -68,12 +71,10 @@ cp .env.example .env
 
 Edita `.env` con tu `DATABASE_URL` local y un `JWT_SECRET` largo y aleatorio. El backend no inicia si faltan esas variables.
 
-3. Ejecutar migraciones:
+3. Ejecutar migraciones versionadas:
 ```bash
-cd backend/database/migrations
-psql -U postgres -d asclepio -f 001_esquema_inicial.sql
-psql -U postgres -d asclepio -f 002_citas_doctores.sql
-psql -U postgres -d asclepio -f 003_datos_prueba.sql
+cd backend
+go run ./scripts/migrate
 ```
 
 4. Iniciar servidor:
@@ -83,6 +84,16 @@ go run cmd/api/main.go
 ```
 
 El servidor estará disponible en `http://localhost:8080`
+
+### Entorno local con Docker
+
+Para probar backend y PostgreSQL sin instalar una base local:
+
+```bash
+docker compose up --build
+```
+
+El compose usa secretos de desarrollo no reales y deja la API en `http://localhost:8080`. Para staging/produccion, usa variables inyectadas por el proveedor de hosting o secret manager.
 
 ### Frontend Móvil
 
@@ -118,6 +129,7 @@ npx expo start
 Backend:
 ```bash
 cd backend
+go run ./scripts/migrate
 go test ./...
 go build -buildvcs=false ./...
 ```
@@ -197,6 +209,10 @@ Scripts auxiliares:
 
 - [Auditoría de Arquitectura](docs/auditoria_arquitectura.md)
 - [Guía de Android](docs/guia_android.md)
+- [Operación y despliegue](docs/OPERATIONS.md)
+- [Checklist legal y tiendas](docs/LEGAL_AND_STORE_CHECKLIST.md)
+- [Plan de beta](docs/BETA_PLAN.md)
+- [Plan de lanzamiento](docs/LAUNCH_PLAN.md)
 - [Resumen de Refactorización](docs/resumen_refactorizacion.md)
 
 ## 🛠️ Tecnologías

@@ -1,0 +1,44 @@
+# Stack local de desarrollo para Asclepio.
+#
+# Este compose no reemplaza staging/produccion: sirve para levantar PostgreSQL,
+# aplicar migraciones manualmente y ejecutar la API en una red local aislada.
+
+services:
+  db:
+    image: postgres:16
+    container_name: asclepio-db
+    environment:
+      POSTGRES_DB: asclepio
+      POSTGRES_USER: asclepio
+      POSTGRES_PASSWORD: asclepio_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - asclepio-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asclepio -d asclepio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+    container_name: asclepio-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      PORT: "8080"
+      DATABASE_URL: postgres://asclepio:asclepio_dev_password@db:5432/asclepio?sslmode=disable
+      JWT_SECRET: local-compose-secret-change-me
+      JWT_EXPIRY: 24h
+      REFRESH_TOKEN_EXPIRY: 168h
+      ALLOWED_ORIGINS: http://localhost:8081,http://localhost:19006
+      PAYMENT_PROVIDER: mock
+    ports:
+      - "8080:8080"
+
+volumes:
+  asclepio-postgres-data:
