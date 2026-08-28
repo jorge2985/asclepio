@@ -12,6 +12,7 @@ import TarjetaMedico from '../../components/TarjetaMedico';
 import usarStoreAutenticacion from '../../stores/authStore';
 
 import { servicioDoctores, servicioCitas } from '../../services/api';
+import { registrarError } from '../../services/errorHandler';
 
 const categorias = [
     'General', 'Cardiología', 'Dermatología', 'Pediatría',
@@ -23,6 +24,8 @@ export default function PantallaInicio() {
     const [busqueda, setBusqueda] = useState('');
     const [doctores, setDoctores] = useState([]);
     const [citaActiva, setCitaActiva] = useState(null);
+    const [cargandoDoctores, setCargandoDoctores] = useState(true);
+    const [errorDoctores, setErrorDoctores] = useState('');
     const router = useRouter();
 
     // Cargar doctores reales
@@ -47,12 +50,15 @@ export default function PantallaInicio() {
 
     const cargarDoctores = async (query = '') => {
         try {
+            setCargandoDoctores(true);
+            setErrorDoctores('');
             const respuesta = await servicioDoctores.listar(query);
             setDoctores(respuesta.data || []);
         } catch (error) {
-            console.error('Error cargando doctores', error);
+            registrarError(error, 'Carga de doctores');
+            setErrorDoctores('No se pudieron cargar los doctores.');
         } finally {
-            // La lista se actualiza con setDoctores; no se requiere flag visual aun.
+            setCargandoDoctores(false);
         }
     };
 
@@ -64,7 +70,7 @@ export default function PantallaInicio() {
             const activa = citas.find(c => c.estado === 'en_camino' || c.estado === 'en_progreso');
             setCitaActiva(activa || null);
         } catch (error) {
-            console.error('Error cargando cita activa', error);
+            registrarError(error, 'Carga de cita activa');
         }
     };
 
@@ -153,7 +159,16 @@ export default function PantallaInicio() {
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.doctorsList}>
+                    {cargandoDoctores ? (
+                        <Text style={styles.emptyText}>Cargando doctores...</Text>
+                    ) : errorDoctores ? (
+                        <TouchableOpacity style={styles.emptyBox} onPress={() => cargarDoctores(busqueda)}>
+                            <Text style={styles.emptyText}>{errorDoctores}</Text>
+                            <Text style={styles.retryText}>Tocar para reintentar</Text>
+                        </TouchableOpacity>
+                    ) : doctores.length === 0 ? (
+                        <Text style={styles.emptyText}>No encontramos doctores para esta busqueda.</Text>
+                    ) : (
                         <View style={styles.doctorsList}>
                             {doctores.map((doc) => (
                                 <TarjetaMedico
@@ -170,7 +185,7 @@ export default function PantallaInicio() {
                                 />
                             ))}
                         </View>
-                    </View>
+                    )}
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -323,5 +338,23 @@ const styles = StyleSheet.create({
     },
     doctorsSection: {
         flex: 1,
+    },
+    emptyBox: {
+        backgroundColor: colors.white,
+        padding: spacing.m,
+        borderRadius: borderRadius.l,
+        borderWidth: 1,
+        borderColor: colors.gray[200],
+    },
+    emptyText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
+        paddingVertical: spacing.m,
+    },
+    retryText: {
+        color: colors.primary,
+        fontWeight: '700',
+        textAlign: 'center',
     },
 });

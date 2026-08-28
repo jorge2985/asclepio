@@ -10,6 +10,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../../styles/theme';
 
 import { servicioCitas } from '../../services/api';
+import { registrarError } from '../../services/errorHandler';
 
 export default function PantallaHistorial() {
     const router = useRouter();
@@ -23,7 +24,7 @@ export default function PantallaHistorial() {
             const agrupado = agruparPorMes(citas);
             setHistorial(agrupado);
         } catch (error) {
-            console.error('Error cargando historial', error);
+            registrarError(error, 'Historial de citas');
         } finally {
             setCargando(false);
         }
@@ -74,7 +75,7 @@ export default function PantallaHistorial() {
             await servicioCitas.cancelar(id);
             cargarHistorial(); // Refrescar lista
         } catch (e) {
-            console.error('Error cancelando', e);
+            registrarError(e, 'Cancelar cita desde historial');
         }
     };
 

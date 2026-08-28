@@ -11,6 +11,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../../styles/theme';
 
 import { servicioCitas } from '../../services/api';
+import { registrarError } from '../../services/errorHandler';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,7 +38,7 @@ export default function PantallaSeguimiento() {
             const activa = citas.find(c => c.estado === 'en_camino' || c.estado === 'en_progreso');
             setCita(activa || null);
         } catch (error) {
-            console.error('Error cargando cita activa en seguimiento', error);
+            registrarError(error, 'Seguimiento cita activa');
         } finally {
             setCargando(false);
         }

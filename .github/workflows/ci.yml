@@ -107,7 +107,7 @@ jobs:
         run: |
           if grep -RInE '18zeta29|dev_secreto_seguro_asclepio_2026|postgres://postgres:18zeta29|192\.168\.0\.5' \
             --exclude-dir=.git --exclude-dir=node_modules --exclude=project_status.md --exclude=project_status_detailed.md \
-            --exclude=HOJA_DE_RUTA_USO_MASIVO.md .; then
+            --exclude=HOJA_DE_RUTA_USO_MASIVO.md --exclude=ci.yml --exclude=check.ps1 .; then
             echo "Known leaked secret or local IP pattern found."
             exit 1
           fi

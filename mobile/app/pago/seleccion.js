@@ -1,38 +1,37 @@
-
 // Seleccion de metodo de pago para una cita.
 //
-// Flujo MVP: llama al endpoint de pago simulado y navega a exito. Cuando haya
-// proveedor real, esta pantalla deberia crear/confirmar intents de pago.
+// Mientras PAYMENT_PROVIDER sea mock, el backend simula el cobro localmente.
+// La pantalla no inventa exito: solo navega a exito si la API responde bien.
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../../styles/theme';
+import { servicioCitas } from '../../services/api';
+import { manejarError, registrarError } from '../../services/errorHandler';
 
 export default function SeleccionPagoScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const [metodoSeleccionado, setMetodoSeleccionado] = useState('tarjeta');
     const [procesando, setProcesando] = useState(false);
+    const [error, setError] = useState('');
 
     const confirmarPago = async () => {
         if (!params.citaId) {
-            console.error("No hay citaId en parámetros");
-            // Igual redirigimos para que no se tranque la demo
-            router.replace('/pago/exito');
+            setError('No se encontro la cita a pagar. Vuelve al historial e intenta nuevamente.');
             return;
         }
 
         try {
+            setError('');
             setProcesando(true);
-            const { servicioCitas } = require('../../services/api');
             await servicioCitas.pagar(params.citaId, metodoSeleccionado);
             router.replace('/pago/exito');
-        } catch (error) {
-            console.error('Error al pagar:', error);
-            // Podríamos mostrar un alert o algo, pero en MVP simulamos que a veces falla o simplemente lo mandamos a fallback
-            router.replace('/pago/exito');
+        } catch (err) {
+            registrarError(err, 'Pago de cita');
+            setError(manejarError(err));
         } finally {
             setProcesando(false);
         }
@@ -67,65 +66,45 @@ export default function SeleccionPagoScreen() {
                     <TouchableOpacity onPress={volver} style={styles.backButton}>
                         <FontAwesome name="arrow-left" size={20} color={colors.textMain} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Método de Pago</Text>
-                    <View style={{ width: 40 }} />
+                    <Text style={styles.headerTitle}>Metodo de Pago</Text>
+                    <View style={styles.headerSpacer} />
                 </View>
             </SafeAreaView>
 
             <ScrollView contentContainerStyle={styles.content}>
-
-                {/* Resumen de Orden */}
                 <View style={styles.summaryCard}>
                     <Text style={styles.summaryTitle}>Resumen</Text>
                     <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Consulta Médica</Text>
+                        <Text style={styles.summaryLabel}>Consulta medica</Text>
                         <Text style={styles.summaryValue}>$45.00</Text>
                     </View>
                     <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Tarifa de Servicio</Text>
+                        <Text style={styles.summaryLabel}>Tarifa de servicio</Text>
                         <Text style={styles.summaryValue}>$2.50</Text>
                     </View>
                     <View style={styles.divider} />
                     <View style={styles.summaryRow}>
-                        <Text style={styles.totalLabel}>Total a Pagar</Text>
+                        <Text style={styles.totalLabel}>Total a pagar</Text>
                         <Text style={styles.totalValue}>$47.50</Text>
                     </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>Selecciona un método</Text>
+                <Text style={styles.sectionTitle}>Selecciona un metodo</Text>
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                <OpcionPago
-                    id="tarjeta"
-                    icon="credit-card"
-                    etiqueta="Tarjeta de Crédito / Débito"
-                    subetiqueta="Visa, Mastercard, Amex"
-                />
-                <OpcionPago
-                    id="apple"
-                    icon="apple"
-                    etiqueta="Apple Pay"
-                />
-                <OpcionPago
-                    id="google"
-                    icon="google"
-                    etiqueta="Google Pay"
-                />
-                <OpcionPago
-                    id="efectivo"
-                    icon="money"
-                    etiqueta="Efectivo en consulta"
-                    subetiqueta="Pagar al llegar"
-                />
-
+                <OpcionPago id="tarjeta" icon="credit-card" etiqueta="Tarjeta de credito / debito" subetiqueta="Visa, Mastercard, Amex" />
+                <OpcionPago id="apple" icon="apple" etiqueta="Apple Pay" />
+                <OpcionPago id="google" icon="google" etiqueta="Google Pay" />
+                <OpcionPago id="efectivo" icon="money" etiqueta="Efectivo en consulta" subetiqueta="Pagar al llegar" />
             </ScrollView>
 
             <View style={styles.footer}>
-                <TouchableOpacity 
-                    style={[styles.payButton, procesando && { opacity: 0.7 }]} 
+                <TouchableOpacity
+                    style={[styles.payButton, procesando && styles.payButtonDisabled]}
                     onPress={confirmarPago}
                     disabled={procesando}
                 >
-                    <Text style={styles.payButtonText}>{procesando ? 'Procesando...' : 'Pagar Ahora'}</Text>
+                    <Text style={styles.payButtonText}>{procesando ? 'Procesando...' : 'Pagar ahora'}</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -133,13 +112,8 @@ export default function SeleccionPagoScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.backgroundLight,
-    },
-    headerSafeArea: {
-        backgroundColor: colors.surfaceLight,
-    },
+    container: { flex: 1, backgroundColor: colors.backgroundLight },
+    headerSafeArea: { backgroundColor: colors.surfaceLight },
     header: {
         height: 50,
         flexDirection: 'row',
@@ -147,18 +121,10 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: spacing.m,
     },
-    backButton: {
-        padding: spacing.s,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.textMain,
-    },
-    content: {
-        padding: spacing.l,
-        paddingBottom: 100,
-    },
+    backButton: { padding: spacing.s },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textMain },
+    headerSpacer: { width: 40 },
+    content: { padding: spacing.l, paddingBottom: 100 },
     summaryCard: {
         backgroundColor: colors.white,
         padding: spacing.l,
@@ -170,47 +136,15 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
     },
-    summaryTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.textMain,
-        marginBottom: spacing.m,
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: spacing.s,
-    },
-    summaryLabel: {
-        color: colors.textSecondary,
-        fontSize: 14,
-    },
-    summaryValue: {
-        color: colors.textMain,
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: colors.gray[200],
-        marginVertical: spacing.s,
-    },
-    totalLabel: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.textMain,
-    },
-    totalValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.primary,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.textMain,
-        marginBottom: spacing.m,
-    },
+    summaryTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textMain, marginBottom: spacing.m },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.s },
+    summaryLabel: { color: colors.textSecondary, fontSize: 14 },
+    summaryValue: { color: colors.textMain, fontWeight: '600', fontSize: 14 },
+    divider: { height: 1, backgroundColor: colors.gray[200], marginVertical: spacing.s },
+    totalLabel: { fontSize: 16, fontWeight: 'bold', color: colors.textMain },
+    totalValue: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textMain, marginBottom: spacing.m },
+    errorText: { color: colors.error, fontSize: 13, marginBottom: spacing.m, fontWeight: '600' },
     paymentOption: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -221,34 +155,13 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.gray[200],
     },
-    optionSelected: {
-        borderColor: colors.primary,
-        backgroundColor: colors.primary + '08', // Muy tenue
-    },
-    optionIconContainer: {
-        width: 40,
-        alignItems: 'center',
-    },
-    optionTextContainer: {
-        flex: 1,
-        paddingHorizontal: spacing.m,
-    },
-    optionLabel: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: colors.textMain,
-    },
-    optionSubLabel: {
-        fontSize: 12,
-        color: colors.textSecondary,
-        marginTop: 2,
-    },
-    textSelected: {
-        color: colors.primary,
-    },
-    radioContainer: {
-        padding: spacing.s,
-    },
+    optionSelected: { borderColor: colors.primary, backgroundColor: colors.primary + '08' },
+    optionIconContainer: { width: 40, alignItems: 'center' },
+    optionTextContainer: { flex: 1, paddingHorizontal: spacing.m },
+    optionLabel: { fontSize: 15, fontWeight: '600', color: colors.textMain },
+    optionSubLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    textSelected: { color: colors.primary },
+    radioContainer: { padding: spacing.s },
     radioButton: {
         width: 20,
         height: 20,
@@ -258,15 +171,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    radioSelected: {
-        borderColor: colors.primary,
-    },
-    radioInner: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: colors.primary,
-    },
+    radioSelected: { borderColor: colors.primary },
+    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
     footer: {
         position: 'absolute',
         bottom: 0,
@@ -278,15 +184,7 @@ const styles = StyleSheet.create({
         borderTopColor: colors.gray[200],
         paddingBottom: Platform.OS === 'ios' ? 30 : spacing.l,
     },
-    payButton: {
-        backgroundColor: colors.primary,
-        padding: spacing.m,
-        borderRadius: borderRadius.l,
-        alignItems: 'center',
-    },
-    payButtonText: {
-        color: colors.white,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+    payButton: { backgroundColor: colors.primary, padding: spacing.m, borderRadius: borderRadius.l, alignItems: 'center' },
+    payButtonDisabled: { opacity: 0.7 },
+    payButtonText: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
 });

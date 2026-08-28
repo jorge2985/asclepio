@@ -141,6 +141,11 @@ npm test -- --runInBand
 npm run lint
 ```
 
+Verificacion interna completa:
+```powershell
+.\scripts\check.ps1
+```
+
 ### Variables de entorno
 
 Backend:
@@ -209,6 +214,8 @@ Scripts auxiliares:
 
 - [Auditoría de Arquitectura](docs/auditoria_arquitectura.md)
 - [Guía de Android](docs/guia_android.md)
+- [Mapa de API y permisos](docs/API_ROUTES.md)
+- [Checklist tecnico de release](docs/RELEASE_CHECKLIST.md)
 - [Operación y despliegue](docs/OPERATIONS.md)
 - [Checklist legal y tiendas](docs/LEGAL_AND_STORE_CHECKLIST.md)
 - [Plan de beta](docs/BETA_PLAN.md)

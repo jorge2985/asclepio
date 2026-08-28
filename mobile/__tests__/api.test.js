@@ -84,6 +84,7 @@ describe('servicioAutenticacion', () => {
         expect(typeof servicioDoctores.listar).toBe('function');
         expect(typeof servicioDoctores.obtener).toBe('function');
         expect(typeof servicioDoctores.pacientes).toBe('function');
+        expect(typeof servicioDoctores.detallePaciente).toBe('function');
         expect(typeof servicioDoctores.estadisticas).toBe('function');
     });
 

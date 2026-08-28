@@ -2,38 +2,35 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
 )
 
-// testBD implementa un pool falso que siempre retorna nil token (sin BD real)
-// Esto permite testear el comportamiento cuando no hay token registrado
-
-func TestEnviarNotificacion_SinToken(t *testing.T) {
-	// El servicio con nil BD debería manejar graciosamente la ausencia de token
-	// En un test real necesitaríamos un mock de la BD.
-	// Este test verifica que la interfaz del servicio funcione correctamente.
-	t.Skip("Requiere mock de BD - integración pendiente")
-}
-
-// TestServicio_Interface verifica que ServicioPush implementa la interfaz Servicio
 func TestServicio_Interface(t *testing.T) {
-	// Verificación en tiempo de compilación que ServicioPush cumple la interfaz Servicio
-	// Si esto compila, el test pasa.
+	// Verificacion en tiempo de compilacion: ServicioPush debe cumplir la interfaz.
 	var _ Servicio = (*ServicioPush)(nil)
 }
 
-// TestEnviarNotificacion_ContextoCancelado verifica comportamiento con context cancelado
+func TestEnviarNotificacion_ServicioSinBDNoHacePanic(t *testing.T) {
+	// Este caso cubre tests unitarios y construcciones defensivas sin PostgreSQL.
+	svc := &ServicioPush{bd: nil}
+
+	err := svc.EnviarNotificacion(context.Background(), uuid.New(), "Titulo", "Cuerpo", nil)
+	if err != nil {
+		t.Fatalf("esperaba nil con BD ausente, obtuvo %v", err)
+	}
+}
+
 func TestEnviarNotificacion_ContextoCancelado(t *testing.T) {
+	// Si el request ya fue cancelado, el servicio debe cortar antes de consultar BD.
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // Cancelar inmediatamente
+	cancel()
 
 	svc := &ServicioPush{bd: nil}
-	_ = ctx
-	_ = svc
-	_ = uuid.New()
-
-	// Con BD nil, el método debe manejar el error sin panic
-	t.Skip("Requiere mock de BD para test completo")
+	err := svc.EnviarNotificacion(ctx, uuid.New(), "Titulo", "Cuerpo", nil)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("esperaba context.Canceled, obtuvo %v", err)
+	}
 }

@@ -6,6 +6,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import logger from './logger';
 
 Notifications.setNotificationHandler({
   // Define como se comporta una notificacion cuando la app esta abierta.
@@ -38,7 +39,7 @@ export async function registerForPushNotificationsAsync() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      console.log('Fallo al obtener el token de push parameters de permisos nativos!');
+      logger.warn('No se obtuvo permiso nativo para notificaciones push.');
       return;
     }
     try {
@@ -52,10 +53,10 @@ export async function registerForPushNotificationsAsync() {
       ).data;
       token = pushTokenString;
     } catch (e) {
-      console.log("No se pudo obtener el expo push token:", e);
+      logger.warn('No se pudo obtener el Expo Push Token:', e);
     }
   } else {
-    console.log('Debes usar un dispositivo físico para habilitar Push Notifications');
+    logger.info('Se necesita un dispositivo fisico para habilitar Push Notifications.');
   }
 
   return token;

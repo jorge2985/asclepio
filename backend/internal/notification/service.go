@@ -35,6 +35,14 @@ func NuevoServicioPush(bd *database.ServicioBD) *ServicioPush {
 // EnviarNotificacion busca el Expo Push Token del usuario y llama a Expo.
 // Si el usuario no tiene token, no es error: solo significa que no habilito push.
 func (s *ServicioPush) EnviarNotificacion(ctx context.Context, usuarioID uuid.UUID, titulo, cuerpo string, datos map[string]string) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if s == nil || s.bd == nil || s.bd.Pool == nil {
+		// Permite tests unitarios y evita panics si el servicio se construye mal.
+		return nil
+	}
+
 	var token *string
 	err := s.bd.Pool.QueryRow(ctx, "SELECT expo_push_token FROM usuarios WHERE id = $1", usuarioID).Scan(&token)
 	if err != nil || token == nil || *token == "" {

@@ -11,6 +11,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../../styles/theme';
 import usarStoreAutenticacion from '../../stores/authStore';
 import { servicioAutenticacion } from '../../services/api';
+import { registrarError } from '../../services/errorHandler';
 
 export default function PantallaPerfil() {
     const { usuario, cerrarSesion } = usarStoreAutenticacion();
@@ -27,7 +28,7 @@ export default function PantallaPerfil() {
             const res = await servicioAutenticacion.perfil();
             setPerfil(res.data);
         } catch (error) {
-            console.error('Error cargando perfil', error);
+            registrarError(error, 'Perfil paciente');
         }
     };
 

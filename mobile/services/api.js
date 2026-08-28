@@ -6,6 +6,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import logger from './logger';
 
 const DEFAULT_API_URLS = {
     // Defaults solo para desarrollo local. Staging/prod deben usar EXPO_PUBLIC_API_URL.
@@ -50,7 +51,7 @@ api.interceptors.request.use(async (config) => {
             config.headers.Authorization = `Bearer ${token}`;
         }
     } catch (error) {
-        console.error('Error leyendo token', error);
+        logger.error('Error leyendo token', error);
     }
     return config;
 });
@@ -106,7 +107,7 @@ api.interceptors.response.use(
                 originalRequest.headers.Authorization = `Bearer ${token}`;
                 return api(originalRequest);
             } catch (err) {
-                console.error('Error renovando token, cerrando sesion', err);
+                logger.error('Error renovando token, cerrando sesion', err);
                 const usarStoreAutenticacion = require('../stores/authStore').default;
                 usarStoreAutenticacion.getState().cerrarSesion();
             }
@@ -131,6 +132,7 @@ export const servicioDoctores = {
     listar: (query = '') => api.get(`/doctores?q=${query}`),
     obtener: (id) => api.get(`/doctores/${id}`),
     pacientes: () => api.get('/doctores/pacientes'),
+    detallePaciente: (id) => api.get(`/doctores/pacientes/${id}`),
     estadisticas: () => api.get('/doctores/estadisticas'),
 };
 

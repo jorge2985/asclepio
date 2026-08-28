@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { servicioAutenticacion } from '../services/api';
+import logger from '../services/logger';
 
 // Store para manejar el estado de autenticación de manera global
 // Estado principal: una pantalla puede leer usuario/token/cargando/error desde aqui.
@@ -43,7 +44,7 @@ const usarStoreAutenticacion = create((set, get) => ({
                 sincronizarTokenPush(); // Intentar al abrir app
             }
         } catch (e) {
-            console.error('Error hidratando autenticación', e);
+            logger.error('Error hidratando autenticacion', e);
         } finally {
             set({ cargando: false });
         }
@@ -206,10 +207,10 @@ async function sincronizarTokenPush() {
         const tokenPush = await registerForPushNotificationsAsync();
         if (tokenPush) {
             await servicioAutenticacion.guardarPushToken(tokenPush);
-            console.log('Push Token enviado al servidor exitosamente.');
+            logger.info('Push Token enviado al servidor exitosamente.');
         }
     } catch (e) {
-        console.log('Silenciosamente ignorando error de Push Token en la UI:', e);
+        logger.info('Silenciosamente ignorando error de Push Token en la UI:', e);
     }
 }
 

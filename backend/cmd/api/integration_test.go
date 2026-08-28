@@ -102,6 +102,7 @@ func setupRouter(t *testing.T) (http.Handler, func()) {
 				r.Group(func(rMedico chi.Router) {
 					rMedico.Use(ascMiddleware.RequireRole("medico", "admin"))
 					rMedico.Get("/pacientes", handlerDoctor.ListarPacientes)
+					rMedico.Get("/pacientes/{id}", handlerDoctor.DetallePaciente)
 					rMedico.Get("/estadisticas", handlerDoctor.ObtenerEstadisticas)
 				})
 				r.Get("/", handlerDoctor.Listar)

@@ -9,6 +9,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import usarStoreAutenticacion from '../../stores/authStore';
 import { servicioCitas, servicioDoctores } from '../../services/api';
+import { registrarError } from '../../services/errorHandler';
 import { spacing } from '../../styles/theme';
 
 const dc = {
@@ -52,7 +53,7 @@ export default function DashboardDoctor() {
             setPacientes(resPacientes.data || []);
             setEstadisticas(resStats.data || null);
         } catch (error) {
-            console.error('Error cargando dashboard del medico', error);
+            registrarError(error, 'Dashboard medico');
         } finally {
             setCargando(false);
         }
@@ -63,7 +64,7 @@ export default function DashboardDoctor() {
             await servicioCitas.confirmar(id);
             cargarDashboard();
         } catch (error) {
-            console.error('Error confirmando cita', error);
+            registrarError(error, 'Confirmar cita');
         }
     };
 

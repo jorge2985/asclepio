@@ -10,6 +10,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../../styles/theme';
 
 import { servicioCitas, servicioDoctores } from '../../services/api';
+import { registrarError } from '../../services/errorHandler';
 
 export default function DetalleMedicoScreen() {
     const { id } = useLocalSearchParams();
@@ -32,7 +33,7 @@ export default function DetalleMedicoScreen() {
             const respuesta = await servicioDoctores.obtener(id);
             setMedico(respuesta.data);
         } catch (error) {
-            console.error('Error cargando médico', error);
+            registrarError(error, 'Detalle medico');
         } finally {
             setCargando(false);
         }
@@ -69,7 +70,7 @@ export default function DetalleMedicoScreen() {
             const res = await servicioCitas.disponibilidad(medico.id, fechaAPI);
             setHorariosDisponibles(res.data || []);
         } catch (error) {
-            console.error('Error cargando horarios', error);
+            registrarError(error, 'Disponibilidad medico');
             setHorariosDisponibles([]);
         } finally {
             setCargandoHorarios(false);
@@ -126,7 +127,7 @@ export default function DetalleMedicoScreen() {
                 },
             });
         } catch (error) {
-            console.error('Error creando cita', error);
+            registrarError(error, 'Crear cita');
             Alert.alert('No se pudo reservar', 'Inténtalo nuevamente en unos minutos.');
         } finally {
             setReservando(false);

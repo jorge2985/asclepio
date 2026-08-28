@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../../styles/theme';
 import { servicioResenas } from '../../services/api';
+import { registrarError } from '../../services/errorHandler';
 
 export default function PantallaEvaluacion() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function PantallaEvaluacion() {
             ]
         );
     } catch (error) {
-        console.error('Error enviando reseña', error);
+        registrarError(error, 'Enviar resena');
         Alert.alert('Ops', 'Ocurrió un error guardando la evaluación. Intenta más tarde.');
     } finally {
         setEnviando(false);

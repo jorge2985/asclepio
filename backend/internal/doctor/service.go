@@ -18,8 +18,7 @@ import (
 	ascMiddleware "asclepio/internal/middleware"
 )
 
-// --- Models ---
-
+// Medico es el perfil publico que ven los pacientes al buscar profesionales.
 type Medico struct {
 	ID             uuid.UUID `json:"id"`
 	NombreCompleto string    `json:"nombre_completo"`
@@ -30,6 +29,7 @@ type Medico struct {
 	Calificacion   float64   `json:"calificacion"`
 }
 
+// PacienteRelacionado es la fila compacta del dashboard medico.
 type PacienteRelacionado struct {
 	ID             uuid.UUID `json:"id"`
 	NombreCompleto string    `json:"nombre_completo"`
@@ -38,6 +38,29 @@ type PacienteRelacionado struct {
 	UltimaVisita   time.Time `json:"ultima_visita"`
 }
 
+// ConsultaPaciente resume una cita pasada o futura visible para el medico.
+type ConsultaPaciente struct {
+	ID              uuid.UUID `json:"id"`
+	FechaHora       time.Time `json:"fecha_hora"`
+	Motivo          string    `json:"motivo"`
+	Estado          string    `json:"estado"`
+	DoctorNombre    string    `json:"doctor_nombre"`
+	Direccion       string    `json:"direccion_atencion"`
+	DuracionMinutos int       `json:"duracion_minutos"`
+}
+
+// DetallePaciente contiene solo datos que el medico puede ver por relacion previa.
+type DetallePaciente struct {
+	ID             uuid.UUID          `json:"id"`
+	NombreCompleto string             `json:"nombre_completo"`
+	Telefono       string             `json:"telefono"`
+	Direccion      string             `json:"direccion"`
+	UltimaVisita   *time.Time         `json:"ultima_visita,omitempty"`
+	MotivoActual   string             `json:"motivo_actual"`
+	Consultas      []ConsultaPaciente `json:"consultas"`
+}
+
+// EstadisticasMedico alimenta las tarjetas del dashboard medico.
 type EstadisticasMedico struct {
 	PacientesAtendidos int     `json:"pacientes_atendidos"`
 	Calificacion       float64 `json:"calificacion"`
@@ -46,22 +69,21 @@ type EstadisticasMedico struct {
 	IngresosEstimados  float64 `json:"ingresos_estimados"`
 }
 
-// --- Repository/Service ---
-
+// Servicio concentra consultas de lectura del dominio medico.
 type Servicio struct {
 	db *database.ServicioBD
 }
 
+// NuevoServicio inyecta la conexion compartida a PostgreSQL.
 func NuevoServicio(db *database.ServicioBD) *Servicio {
 	return &Servicio{db: db}
 }
 
-// ListarDoctores retorna todos los médicos (con filtro opcional query)
+// ListarDoctores retorna todos los medicos con filtro opcional por nombre/especialidad.
 func (s *Servicio) ListarDoctores(ctx context.Context, query string) ([]Medico, error) {
-	// El filtro es opcional: query vacio devuelve todos los medicos.
 	sql := `
-		SELECT usuario_id, nombre_completo, especialidad, biografia, tarifa_hora, ubicacion, calificacion 
-		FROM medicos 
+		SELECT usuario_id, nombre_completo, especialidad, biografia, tarifa_hora, ubicacion, calificacion
+		FROM medicos
 		WHERE ($1 = '' OR nombre_completo ILIKE '%' || $1 || '%' OR especialidad ILIKE '%' || $1 || '%')
 		ORDER BY calificacion DESC
 	`
@@ -73,33 +95,37 @@ func (s *Servicio) ListarDoctores(ctx context.Context, query string) ([]Medico, 
 
 	var doctores []Medico
 	for rows.Next() {
-		var m Medico
-		if err := rows.Scan(&m.ID, &m.NombreCompleto, &m.Especialidad, &m.Biografia, &m.TarifaHora, &m.Ubicacion, &m.Calificacion); err != nil {
+		var medico Medico
+		if err := rows.Scan(&medico.ID, &medico.NombreCompleto, &medico.Especialidad, &medico.Biografia, &medico.TarifaHora, &medico.Ubicacion, &medico.Calificacion); err != nil {
 			return nil, err
 		}
-		doctores = append(doctores, m)
+		doctores = append(doctores, medico)
 	}
-	return doctores, nil
+	return doctores, rows.Err()
 }
 
+// ObtenerPorID retorna el perfil publico de un medico o nil si no existe.
 func (s *Servicio) ObtenerPorID(ctx context.Context, id uuid.UUID) (*Medico, error) {
-	sql := `SELECT usuario_id, nombre_completo, especialidad, biografia, tarifa_hora, ubicacion, calificacion FROM medicos WHERE usuario_id = $1`
-	var m Medico
-	err := s.db.Pool.QueryRow(ctx, sql, id).Scan(&m.ID, &m.NombreCompleto, &m.Especialidad, &m.Biografia, &m.TarifaHora, &m.Ubicacion, &m.Calificacion)
+	sql := `
+		SELECT usuario_id, nombre_completo, especialidad, biografia, tarifa_hora, ubicacion, calificacion
+		FROM medicos
+		WHERE usuario_id = $1
+	`
+	var medico Medico
+	err := s.db.Pool.QueryRow(ctx, sql, id).Scan(&medico.ID, &medico.NombreCompleto, &medico.Especialidad, &medico.Biografia, &medico.TarifaHora, &medico.Ubicacion, &medico.Calificacion)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, nil // Not found
+			return nil, nil
 		}
 		return nil, err
 	}
-	return &m, nil
+	return &medico, nil
 }
 
-// ListarPacientes retorna la lista de pacientes que han tenido citas con el médico
+// ListarPacientes retorna pacientes que tuvieron al menos una cita con el medico.
 func (s *Servicio) ListarPacientes(ctx context.Context, medicoID uuid.UUID) ([]PacienteRelacionado, error) {
-	// Un paciente aparece aqui solo si tuvo al menos una cita con ese medico.
 	sql := `
-		SELECT DISTINCT p.usuario_id, p.nombre_completo, COALESCE(p.telefono, ''), COALESCE(p.direccion, ''), MAX(c.fecha_hora) as ultima_visita
+		SELECT p.usuario_id, p.nombre_completo, COALESCE(p.telefono, ''), COALESCE(p.direccion, ''), MAX(c.fecha_hora) AS ultima_visita
 		FROM pacientes p
 		JOIN citas c ON c.paciente_id = p.usuario_id
 		WHERE c.medico_id = $1
@@ -114,25 +140,96 @@ func (s *Servicio) ListarPacientes(ctx context.Context, medicoID uuid.UUID) ([]P
 
 	var pacientes []PacienteRelacionado
 	for rows.Next() {
-		var pr PacienteRelacionado
-		if err := rows.Scan(&pr.ID, &pr.NombreCompleto, &pr.Telefono, &pr.Direccion, &pr.UltimaVisita); err != nil {
+		var paciente PacienteRelacionado
+		if err := rows.Scan(&paciente.ID, &paciente.NombreCompleto, &paciente.Telefono, &paciente.Direccion, &paciente.UltimaVisita); err != nil {
 			return nil, err
 		}
-		pacientes = append(pacientes, pr)
+		pacientes = append(pacientes, paciente)
 	}
-	return pacientes, nil
+	return pacientes, rows.Err()
 }
 
-// ObtenerEstadisticas calcula métricas de rendimiento del médico
+// ObtenerPacienteRelacionado devuelve el detalle visible de un paciente.
+//
+// El JOIN con citas es la regla de seguridad clave: un medico solo puede ver
+// pacientes con los que ya tiene una cita registrada.
+func (s *Servicio) ObtenerPacienteRelacionado(ctx context.Context, medicoID, pacienteID uuid.UUID) (*DetallePaciente, error) {
+	sqlPaciente := `
+		SELECT p.usuario_id, p.nombre_completo, COALESCE(p.telefono, ''), COALESCE(p.direccion, ''), MAX(c.fecha_hora) AS ultima_visita
+		FROM pacientes p
+		JOIN citas c ON c.paciente_id = p.usuario_id
+		WHERE c.medico_id = $1 AND p.usuario_id = $2
+		GROUP BY p.usuario_id, p.nombre_completo, p.telefono, p.direccion
+	`
+
+	var detalle DetallePaciente
+	var ultimaVisita *time.Time
+	err := s.db.Pool.QueryRow(ctx, sqlPaciente, medicoID, pacienteID).Scan(
+		&detalle.ID,
+		&detalle.NombreCompleto,
+		&detalle.Telefono,
+		&detalle.Direccion,
+		&ultimaVisita,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	detalle.UltimaVisita = ultimaVisita
+
+	sqlConsultas := `
+		SELECT c.id, c.fecha_hora, COALESCE(c.motivo, ''), c.estado::text, m.nombre_completo,
+		       COALESCE(c.direccion_atencion, ''), COALESCE(c.duracion_minutos, 30)
+		FROM citas c
+		JOIN medicos m ON m.usuario_id = c.medico_id
+		WHERE c.medico_id = $1 AND c.paciente_id = $2
+		ORDER BY c.fecha_hora DESC
+		LIMIT 20
+	`
+	rows, err := s.db.Pool.Query(ctx, sqlConsultas, medicoID, pacienteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var consulta ConsultaPaciente
+		if err := rows.Scan(
+			&consulta.ID,
+			&consulta.FechaHora,
+			&consulta.Motivo,
+			&consulta.Estado,
+			&consulta.DoctorNombre,
+			&consulta.Direccion,
+			&consulta.DuracionMinutos,
+		); err != nil {
+			return nil, err
+		}
+		if detalle.MotivoActual == "" && consulta.Motivo != "" {
+			detalle.MotivoActual = consulta.Motivo
+		}
+		detalle.Consultas = append(detalle.Consultas, consulta)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if detalle.Consultas == nil {
+		detalle.Consultas = []ConsultaPaciente{}
+	}
+	return &detalle, nil
+}
+
+// ObtenerEstadisticas calcula metricas de rendimiento del medico.
 func (s *Servicio) ObtenerEstadisticas(ctx context.Context, medicoID uuid.UUID) (*EstadisticasMedico, error) {
-	// Estas metricas alimentan el dashboard medico. Evitar hardcodearlas en mobile.
 	sql := `
-		SELECT 
-			(SELECT COUNT(DISTINCT paciente_id) FROM citas WHERE medico_id = $1 AND estado NOT IN ('cancelada')) as pacientes_atendidos,
-			(SELECT COALESCE(calificacion, 0.00) FROM medicos WHERE usuario_id = $1) as calificacion,
-			(SELECT COUNT(*) FROM citas WHERE medico_id = $1 AND estado = 'completada') as citas_completadas,
-			(SELECT COUNT(*) FROM citas WHERE medico_id = $1 AND estado IN ('pendiente_confirmacion', 'confirmada')) as citas_pendientes,
-			(SELECT COALESCE(SUM(p.monto), 0.0) FROM pagos p JOIN citas c ON p.cita_id = c.id WHERE c.medico_id = $1 AND p.estado = 'pagado') as ingresos_estimados
+		SELECT
+			(SELECT COUNT(DISTINCT paciente_id) FROM citas WHERE medico_id = $1 AND estado NOT IN ('cancelada')) AS pacientes_atendidos,
+			(SELECT COALESCE(calificacion, 0.00) FROM medicos WHERE usuario_id = $1) AS calificacion,
+			(SELECT COUNT(*) FROM citas WHERE medico_id = $1 AND estado = 'completada') AS citas_completadas,
+			(SELECT COUNT(*) FROM citas WHERE medico_id = $1 AND estado IN ('pendiente_confirmacion', 'confirmada')) AS citas_pendientes,
+			(SELECT COALESCE(SUM(p.monto), 0.0) FROM pagos p JOIN citas c ON p.cita_id = c.id WHERE c.medico_id = $1 AND p.estado = 'pagado') AS ingresos_estimados
 	`
 	var stats EstadisticasMedico
 	err := s.db.Pool.QueryRow(ctx, sql, medicoID).Scan(
@@ -148,62 +245,62 @@ func (s *Servicio) ObtenerEstadisticas(ctx context.Context, medicoID uuid.UUID) 
 	return &stats, nil
 }
 
-// --- Handler ---
-
+// Handler traduce HTTP a llamadas del servicio.
 type Handler struct {
 	svc *Servicio
 }
 
+// NuevoHandler conecta el servicio con sus endpoints HTTP.
 func NuevoHandler(svc *Servicio) *Handler {
 	return &Handler{svc: svc}
 }
 
+// RegistrarRutas existe para tests o routers que quieran montar el modulo completo.
 func (h *Handler) RegistrarRutas(r chi.Router) {
 	r.Get("/pacientes", h.ListarPacientes)
+	r.Get("/pacientes/{id}", h.DetallePaciente)
 	r.Get("/estadisticas", h.ObtenerEstadisticas)
 	r.Get("/", h.Listar)
 	r.Get("/{id}", h.Detalle)
 }
 
+// Listar expone busqueda publica de medicos autenticados.
 func (h *Handler) Listar(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	docs, err := h.svc.ListarDoctores(r.Context(), q)
+	doctores, err := h.svc.ListarDoctores(r.Context(), q)
 	if err != nil {
 		http.Error(w, "Error interno", http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(docs)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(doctores)
 }
 
+// Detalle expone el perfil publico de un medico por ID.
 func (h *Handler) Detalle(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := uuid.Parse(idStr)
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		http.Error(w, "ID invalido", http.StatusBadRequest)
 		return
 	}
 
-	doc, err := h.svc.ObtenerPorID(r.Context(), id)
+	medico, err := h.svc.ObtenerPorID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Error interno", http.StatusInternalServerError)
 		return
 	}
-	if doc == nil {
+	if medico == nil {
 		http.Error(w, "Doctor no encontrado", http.StatusNotFound)
 		return
 	}
-	json.NewEncoder(w).Encode(doc)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(medico)
 }
 
+// ListarPacientes alimenta la lista compacta del dashboard medico.
 func (h *Handler) ListarPacientes(w http.ResponseWriter, r *http.Request) {
-	userIDStr := ascMiddleware.GetUserID(r.Context())
-	if userIDStr == "" {
-		http.Error(w, "No autorizado", http.StatusUnauthorized)
-		return
-	}
-	medicoID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		http.Error(w, "ID de médico inválido", http.StatusBadRequest)
+	medicoID, ok := obtenerUsuarioIDHTTP(w, r, "ID de medico invalido")
+	if !ok {
 		return
 	}
 
@@ -217,24 +314,62 @@ func (h *Handler) ListarPacientes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pacientes)
 }
 
-func (h *Handler) ObtenerEstadisticas(w http.ResponseWriter, r *http.Request) {
-	userIDStr := ascMiddleware.GetUserID(r.Context())
-	if userIDStr == "" {
-		http.Error(w, "No autorizado", http.StatusUnauthorized)
+// DetallePaciente alimenta la pantalla mobile /paciente/[id].
+func (h *Handler) DetallePaciente(w http.ResponseWriter, r *http.Request) {
+	medicoID, ok := obtenerUsuarioIDHTTP(w, r, "ID de medico invalido")
+	if !ok {
 		return
 	}
-	medicoID, err := uuid.Parse(userIDStr)
+
+	pacienteID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "ID de médico inválido", http.StatusBadRequest)
+		http.Error(w, "ID de paciente invalido", http.StatusBadRequest)
+		return
+	}
+
+	paciente, err := h.svc.ObtenerPacienteRelacionado(r.Context(), medicoID, pacienteID)
+	if err != nil {
+		http.Error(w, "Error al obtener paciente", http.StatusInternalServerError)
+		return
+	}
+	if paciente == nil {
+		http.Error(w, "Paciente no encontrado", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(paciente)
+}
+
+// ObtenerEstadisticas calcula metricas del medico autenticado.
+func (h *Handler) ObtenerEstadisticas(w http.ResponseWriter, r *http.Request) {
+	medicoID, ok := obtenerUsuarioIDHTTP(w, r, "ID de medico invalido")
+	if !ok {
 		return
 	}
 
 	stats, err := h.svc.ObtenerEstadisticas(r.Context(), medicoID)
 	if err != nil {
-		http.Error(w, "Error al obtener estadísticas", http.StatusInternalServerError)
+		http.Error(w, "Error al obtener estadisticas", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
+}
+
+// obtenerUsuarioIDHTTP centraliza el parseo del usuario autenticado del contexto.
+func obtenerUsuarioIDHTTP(w http.ResponseWriter, r *http.Request, mensajeIDInvalido string) (uuid.UUID, bool) {
+	userIDStr := ascMiddleware.GetUserID(r.Context())
+	if userIDStr == "" {
+		http.Error(w, "No autorizado", http.StatusUnauthorized)
+		return uuid.Nil, false
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, mensajeIDInvalido, http.StatusBadRequest)
+		return uuid.Nil, false
+	}
+	return userID, true
 }
